@@ -16,13 +16,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    ComboBoxItemsEditor.cpp \
+    SwitchButton.cpp \
     main.cpp \
     MainWindow.cpp
 
 HEADERS += \
-    ComboBoxItemsEditor.h \
-    MainWindow.h
+    MainWindow.h \
+    SwitchButton.h \
+    math/matrix/MatrixOnRow.hpp
 
 FORMS += \
     MainWindow.ui

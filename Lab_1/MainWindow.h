@@ -2,7 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QAbstractItemModel>
+#include <QMessageBox>
+#include <QStandardItemModel>
+
+#include "SwitchButton.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -16,12 +19,25 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+private slots:
+    void changeImageSet(int index);
+    void addImage(bool);
+    void removeImage(bool);
+
 private:
     Ui::MainWindow *ui;
 
-    void initImageGroup();
+    void showMessage();
+    void addGroup(bool isValid);
+    void removeGroup(bool isValid);
 
-    static QString ImageGroup;
-    static QString Finctitious;
+
+    void initImageSet();
+    void initImageGroups();
+    void initTableSize();
+
+    QAbstractItemModel *modelForNewGroup() const;
+
+    static QString Images;
 };
 #endif // MAINWINDOW_H
