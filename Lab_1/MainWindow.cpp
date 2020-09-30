@@ -26,21 +26,9 @@ void MainWindow::initImageGroup() {
     auto indexFirst = model->index(0, 0);
     auto indexSecond = model->index(1, 0);
     QMap<int, QVariant> map;
-    map[0] = "A";
+    map[Qt::DisplayRole] = "A";
+    map[Qt::UserRole] = QVariantHash();
     model->setItemData(indexFirst, map);
-    map[0] = "B";
+    map[Qt::DisplayRole] = "B";
     model->setItemData(indexSecond, map);
-//    ui->comboBox_ImGr->setEditable(true);
-//    ui->comboBox_ImGr->setInsertPolicy(QComboBox::InsertAtCurrent);
-
-//    ui->comboBox_ImGr->addItem(tr("A"));
-//    ui->comboBox_ImGr->addItem(tr("B"));
-
-//    ComboBoxInfo info;
-//    info.setRole(ImageGroup);
-//    ui->comboBox_ImGr->addItem(tr("A"), info);
-//    ui->comboBox_ImGr->addItem(tr("B"), info);
-
-//    info.setRole(Finctitious);
-//    ui->comboBox_ImGr->addItem(tr("Добавить группу изображений"), info);
 }
