@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QAbstractItemModel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -17,5 +18,10 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    void initImageGroup();
+
+    static QString ImageGroup;
+    static QString Finctitious;
 };
 #endif // MAINWINDOW_H
