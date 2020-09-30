@@ -20,9 +20,11 @@ public:
     ~MainWindow();
 
 private slots:
+    void changeImage(int index);
     void changeImageSet(int index);
     void addImage(bool);
     void removeImage(bool);
+    void saveImage(bool);
 
 private:
     Ui::MainWindow *ui;
@@ -31,13 +33,18 @@ private:
     void addGroup(bool isValid);
     void removeGroup(bool isValid);
 
-
     void initImageSet();
     void initImageGroups();
     void initTableSize();
 
+    void setImageData(int index, const QVector<bool> &vec);
+    void setTableData(const QVector<bool> &vec);
+    void readTableData(QVector<bool> &vec);
+    void clearTableData();
+
     QAbstractItemModel *modelForNewGroup() const;
 
     static QString Images;
+    static QString Matrix;
 };
 #endif // MAINWINDOW_H

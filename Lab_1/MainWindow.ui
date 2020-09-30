@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>904</width>
     <height>600</height>
    </rect>
   </property>
@@ -18,6 +18,13 @@
     <item>
      <widget class="QWidget" name="widget_9" native="true">
       <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <widget class="QLabel" name="imageInfo">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QTableWidget" name="table">
          <property name="verticalScrollBarPolicy">
@@ -44,10 +51,16 @@
          <property name="columnCount">
           <number>5</number>
          </property>
+         <attribute name="horizontalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
          <attribute name="horizontalHeaderCascadingSectionResizes">
           <bool>false</bool>
          </attribute>
          <attribute name="horizontalHeaderStretchLastSection">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="verticalHeaderVisible">
           <bool>false</bool>
          </attribute>
          <attribute name="verticalHeaderStretchLastSection">
@@ -151,6 +164,12 @@
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <item>
               <widget class="QLabel" name="label_5">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="text">
                 <string>Изображение</string>
                </property>
@@ -176,6 +195,13 @@
            <widget class="QWidget" name="widget" native="true">
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <item>
+              <widget class="QPushButton" name="saveImage">
+               <property name="text">
+                <string>Запомнить изображение</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QPushButton" name="addImage">
                <property name="text">
                 <string>Добавить изображение</string>
@@ -186,26 +212,6 @@
               <widget class="QPushButton" name="removeImage">
                <property name="text">
                 <string>Удалить изображение</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget_8" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_5">
-             <item>
-              <widget class="QPushButton" name="saveImage">
-               <property name="text">
-                <string>Запомнить изображение</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="recognizeImage">
-               <property name="text">
-                <string>Распознать изображение</string>
                </property>
               </widget>
              </item>
@@ -227,6 +233,26 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item>
+        <widget class="QWidget" name="widget_8" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QPushButton" name="learning">
+            <property name="text">
+             <string>Обучить нейронную сеть</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="recognizeImage">
+            <property name="text">
+             <string>Распознать изображение</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </item>
       </layout>
      </widget>

@@ -9,15 +9,15 @@ class SwitchButton : public QPushButton
 {
     Q_OBJECT
 public:
-    SwitchButton(QColor unselect, QColor select, bool buttonClicked = false, QWidget *parent = nullptr);
+    SwitchButton(QColor setUnselect, QColor setSelected, bool buttonClicked = false, QWidget *parent = nullptr);
 
-    QColor select() const;
+    QColor selected() const;
     QColor unselect() const;
-    bool buttonClicked() const;
+    bool isSelected() const;
 
-    void select(QColor color);
-    void select(bool value);
-    void unselect(QColor color);
+    void setSelected(QColor color);
+    void setSelected(bool value);
+    void setUnselect(QColor color);
 
 private slots:
     void buttonClicked(bool);

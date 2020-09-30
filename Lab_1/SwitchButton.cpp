@@ -4,12 +4,12 @@ SwitchButton::SwitchButton(QColor unselect, QColor select, bool isSelected, QWid
     _unselect = unselect;
     _select = select;
     _isSelected = isSelected;
-    this->select(_isSelected);
+    this->setSelected(_isSelected);
     setAutoFillBackground(true);
     connect(this, SIGNAL(clicked(bool)), this, SLOT(buttonClicked(bool)));
 }
 
-QColor SwitchButton::select() const {
+QColor SwitchButton::selected() const {
     return _select;
 }
 
@@ -17,15 +17,15 @@ QColor SwitchButton::unselect() const {
     return _unselect;
 }
 
-bool SwitchButton::buttonClicked() const {
+bool SwitchButton::isSelected() const {
     return _isSelected;
 }
 
-void SwitchButton::select(QColor color) {
+void SwitchButton::setSelected(QColor color) {
     _select = color;
 }
 
-void SwitchButton::select(bool value) {
+void SwitchButton::setSelected(bool value) {
     QColor activeColor = value ? _select : _unselect;
     QString str = "background-color: rgb(";
     str += QString::number(activeColor.red()) + ", ";
@@ -35,10 +35,10 @@ void SwitchButton::select(bool value) {
     _isSelected = value;
 }
 
-void SwitchButton::unselect(QColor color) {
+void SwitchButton::setUnselect(QColor color) {
     _unselect = color;
 }
 
 void SwitchButton::buttonClicked(bool) {
-    select(!_isSelected);
+    setSelected(!_isSelected);
 }
