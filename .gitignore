@@ -28,6 +28,7 @@ Thumbs.db
 moc_*.*
 ui_*.h
 ui_*.cpp
+users*~*
 Makefile
 *.rar
 *.zip
@@ -43,3 +44,4 @@ _ReSharper*/
 .vs/
 #Nuget packages folder
 packages/
+/Lab_1/math/desktop.ini
