@@ -28,7 +28,8 @@ HEADERS += \
     MainWindow.h \
     SwitchButton.h \
     math/matrix/MatrixOnRow.hpp \
-    neural_networks/AbstractClusterOfNeurons.hpp
+    neural_networks/AbstractClusterOfNeurons.hpp \
+    neural_networks/AbstractNeuralNetwork.hpp
 
 FORMS += \
     MainWindow.ui

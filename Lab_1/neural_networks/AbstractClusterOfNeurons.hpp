@@ -7,20 +7,25 @@
 #include "math/matrix/MatrixOnRow.hpp"
 #include <QRandomGenerator>
 
+template<class Base> class NeuralNetwork;
+template<class Base> class AbstractClusterOfNeurons;
+
 /// Это шаблон, поэтому реализация прямо в файле с заголовками
-/// TODO добавить число входных сигналов
 template<class Base>
 class AbstractClusterOfNeurons
 {
+public:
+    typedef QList<AbstractClusterOfNeurons<Base>*> ClusterList;
+
 protected:
     MatrixOnRow<Base> outputSignal;
     MatrixOnRow<Base> weightingShift;
     MatrixOnRow<Base> weightingFactors;
-    QList<AbstractClusterOfNeurons*> inputs;
-    QList<AbstractClusterOfNeurons*> outputs;
+    ClusterList inputs;
+    ClusterList outputs;
 
 public:
-    AbstractClusterOfNeurons(int neuronsCount);
+    AbstractClusterOfNeurons(int neuronsCount, NeuralNetwork<Base> *neuralWeb = nullptr);
 
     ~AbstractClusterOfNeurons();
 
@@ -35,6 +40,12 @@ public:
 
     /// Возвращает число входных сигналов
     inline int inputSignalCount() const;
+
+    /// Возвращает список входных кластеров
+    inline const ClusterList& inputClusters() const;
+
+    /// Возвращает список выходных кластеров
+    inline const ClusterList& outputClusters() const;
 
     /// Устанавливает число одновременно
     /// обрабатываемых входных сигналов
@@ -72,8 +83,11 @@ public:
     /// Удаляет связи со всеми кластерами
     void clearLinks();
 
-    /// Заполняет выходные сигналы сигналом сдвига
+    /// Заполняет выходные сигналы значением по умолчанию типа Base
     inline void clearOutputSignal();
+
+    /// Заполняет выходные сигналы сигналом сдвига
+    inline void initOutputSignal();
 
     /// Расчитывает входной сигнал
     virtual void calculateSumm();
@@ -109,7 +123,7 @@ protected:
 
 
 template<class Base>
-AbstractClusterOfNeurons<Base>::AbstractClusterOfNeurons(int neuronsCount) {
+AbstractClusterOfNeurons<Base>::AbstractClusterOfNeurons(int neuronsCount, NeuralNetwork<Base> *neuralWeb) {
     if(neuronsCount < 1)
         throw std::invalid_argument("AbstractClusterOfNeurons::AbstractClusterOfNeurons(int): The minimum number of neurons in a cluster 1");
     outputSignal.setColumns(1);
@@ -130,6 +144,21 @@ int AbstractClusterOfNeurons<Base>::neuronsCount() const {
 template<class Base>
 int AbstractClusterOfNeurons<Base>::threadsCount() const {
     return outputSignal.columns();
+}
+
+template<class Base>
+int AbstractClusterOfNeurons<Base>::inputSignalCount() const {
+    return weightingFactors.columns();
+}
+
+template<class Base>
+const typename AbstractClusterOfNeurons<Base>::ClusterList& AbstractClusterOfNeurons<Base>::inputClusters() const {
+    return inputs;
+}
+
+template<class Base>
+const typename AbstractClusterOfNeurons<Base>::ClusterList& AbstractClusterOfNeurons<Base>::outputClusters() const {
+    return outputs;
 }
 
 template<class Base>
@@ -249,6 +278,16 @@ template<class Base>
 void AbstractClusterOfNeurons<Base>::clearOutputSignal() {
     auto startSignal = outputSignal.getBaseRow().begin();
     auto endSignal = outputSignal.getBaseRow().end();
+    while(startSignal != endSignal) {
+        *startSignal += Base();
+        ++startSignal;
+    }
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::initOutputSignal() {
+    auto startSignal = outputSignal.getBaseRow().begin();
+    auto endSignal = outputSignal.getBaseRow().end();
     auto shiftIter = weightingShift.getBaseRow().begin();
     while(startSignal != endSignal) {
         *startSignal += *shiftIter;
@@ -259,7 +298,7 @@ void AbstractClusterOfNeurons<Base>::clearOutputSignal() {
 
 template<class Base>
 void AbstractClusterOfNeurons<Base>::calculateSumm() {
-    clearOutputSignal();
+    initOutputSignal();
     if(outputSignal.columns() == 1) {
         /// Из - за особенности хранения данных в матрице
         /// Можно использовать итераторы
@@ -303,12 +342,14 @@ void AbstractClusterOfNeurons<Base>::calculateSumm() {
             shift += cluster->neuronsCount();
         }
     }
+
 }
 
 template<class Base>
 bool AbstractClusterOfNeurons<Base>::processingSumm() {
     for(auto& value : outputSignal)
         value = activationFunction(value);
+    return true;
 }
 
 template<class Base>
