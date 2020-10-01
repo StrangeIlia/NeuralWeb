@@ -24,6 +24,7 @@ SOURCES += \
 HEADERS += \
     AbstractClusterOfNeurons.hpp \
     AbstractNeuralMethods.h \
+    DebugClusterOfNeurons.hpp \
     ExtendedClusterOfNeurons.hpp \
     MainWindow.h \
     SwitchButton.h \
