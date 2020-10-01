@@ -8,6 +8,9 @@
 #include <QRandomGenerator>
 
 /// Это шаблон, поэтому реализация прямо в файле с заголовками
+/// TODO добавить число входных сигналов
+/// TODO добавить вывод весовых коэффициентов
+/// TODO дописать функции для расчета
 template<class Base>
 class AbstractClusterOfNeurons
 {
@@ -22,6 +25,8 @@ public:
     AbstractClusterOfNeurons(int neuronsCount) {
         if(neuronsCount < 1)
             throw std::invalid_argument("AbstractClusterOfNeurons::AbstractClusterOfNeurons(int): The minimum number of neurons in a cluster 1");
+        outputSignal.setColumns(1);
+        weightingShift.setColumns(1);
         insertNeurons(0, neuronsCount);
     }
 
@@ -97,8 +102,33 @@ public:
         disconnect(this, cluster);
     }
 
-    virtual bool calculateOut() = 0;
+    virtual Base activationFunction(const Base&) = 0;
     virtual bool weightCorrection() = 0;
+
+    /// Расчитывает входной сигнал
+    virtual void calculateSumm() {
+        if(outputSignal.columns() == 1) {
+            auto iter = outputSignal.getBaseRow().begin();
+            for(auto cluster : inputs) {
+
+            }
+        } else {
+
+        }
+    }
+
+    /// Обрабатывает входной сигнал до выходного
+    bool processingSumm() {
+        for(auto& value : outputSignal)
+            value = activationFunction(value);
+    }
+
+    /// Объединяет calculateSumm и processingSumm
+    virtual void calculateOut() {
+        for(auto cluster : inputs) {
+
+        }
+    }
 
     void readOutputSignals(MatrixOnRow<Base> &output) {
         output.setSize(outputSignal.rows(), outputSignal.columns());
