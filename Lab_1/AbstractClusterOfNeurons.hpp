@@ -9,8 +9,6 @@
 
 /// Это шаблон, поэтому реализация прямо в файле с заголовками
 /// TODO добавить число входных сигналов
-/// TODO добавить вывод весовых коэффициентов
-/// TODO дописать функции для расчета
 template<class Base>
 class AbstractClusterOfNeurons
 {
@@ -24,6 +22,8 @@ protected:
 public:
     AbstractClusterOfNeurons(int neuronsCount);
 
+    ~AbstractClusterOfNeurons();
+
     /// Функия активации
     virtual Base activationFunction(const Base&) = 0;
 
@@ -33,7 +33,14 @@ public:
     /// Число одновременно обрабатываемых входных сигналов
     inline int threadsCount() const;
 
-    inline void setThreadsCount();
+    /// Возвращает число входных сигналов
+    inline int inputSignalCount() const;
+
+    /// Устанавливает число одновременно
+    /// обрабатываемых входных сигналов
+    /// !!! ВНИМАНИЕ !!! Число входов будет изменено для все сети
+    /// !!! ВНИМАНИЕ !!! Даннный метод пока не реализован (будет выкинуто исключение std::exception)
+    inline void setThreadsCount(int count);
 
     /// Вставляет count нейронов на index место
     void insertNeurons(int index, int count);
@@ -62,6 +69,9 @@ public:
     /// Удалить связь между кластерами
     static bool disconnect(AbstractClusterOfNeurons *in, AbstractClusterOfNeurons *out);
 
+    /// Удаляет связи со всеми кластерами
+    void clearLinks();
+
     /// Заполняет выходные сигналы сигналом сдвига
     inline void clearOutputSignal();
 
@@ -71,9 +81,23 @@ public:
     /// Преобразует суммарный входной сигнал в выходной
     virtual bool processingSumm();
 
+    /// Чтение выходных сигналов
     void readOutputSignals(MatrixOnRow<Base> &output);
 
+    /// Запись выходных сигналов
     void writeOutputSignals(MatrixOnRow<Base> &input);
+
+    /// Чтение весов для сдвига
+    void readShiftWeight(MatrixOnRow<Base> &output);
+
+    /// Запись весов для сдвига
+    void writeShiftWeight(MatrixOnRow<Base> &input);
+
+    /// Чтение весовых коэффициентов
+    void readWeightingFactors(MatrixOnRow<Base> &output);
+
+    /// Запись весовых коэффициентов
+    void writeWeightingFactors(MatrixOnRow<Base> &input);
 
 protected:
     virtual Base getInitValue() const;
@@ -94,6 +118,11 @@ AbstractClusterOfNeurons<Base>::AbstractClusterOfNeurons(int neuronsCount) {
 }
 
 template<class Base>
+AbstractClusterOfNeurons<Base>::~AbstractClusterOfNeurons() {
+    clearLinks();
+}
+
+template<class Base>
 int AbstractClusterOfNeurons<Base>::neuronsCount() const {
     return outputSignal.rows();
 }
@@ -104,7 +133,7 @@ int AbstractClusterOfNeurons<Base>::threadsCount() const {
 }
 
 template<class Base>
-void AbstractClusterOfNeurons<Base>::setThreadsCount() {
+void AbstractClusterOfNeurons<Base>::setThreadsCount(int /*count*/) {
     /// Пока нет реализации
     throw std::exception();
 }
@@ -207,6 +236,16 @@ bool AbstractClusterOfNeurons<Base>::disconnect(AbstractClusterOfNeurons *in, Ab
 }
 
 template<class Base>
+void AbstractClusterOfNeurons<Base>::clearLinks() {
+    auto list = inputs;
+    for(auto cluster : list)
+        disconnect(cluster, this);
+    list = outputs;
+    for(auto cluster : list)
+        disconnect(this, cluster);
+}
+
+template<class Base>
 void AbstractClusterOfNeurons<Base>::clearOutputSignal() {
     auto startSignal = outputSignal.getBaseRow().begin();
     auto endSignal = outputSignal.getBaseRow().end();
@@ -287,6 +326,44 @@ void AbstractClusterOfNeurons<Base>::writeOutputSignals(MatrixOnRow<Base> &input
     if(input.columns() != outputSignal.columns())
         throw std::invalid_argument("AbstractClusterOfNeurons::writeOutputSignals(MatrixOnRow&) input.columns != threadsCount");
     auto& out = outputSignal.getBaseRow();
+    const auto& in = input.getBaseRow();
+    std::copy(in.begin(), in.end(), out.begin());
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::readShiftWeight(MatrixOnRow<Base> &output) {
+    output.setSize(weightingShift.rows(), weightingShift.columns());
+    auto& out = output.getBaseRow();
+    const auto& in = weightingShift.getBaseRow();
+    std::copy(in.begin(), in.end(), out.begin());
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::writeShiftWeight(MatrixOnRow<Base> &input) {
+    if(input.rows() != weightingShift.rows())
+        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.rows != neuronsCount");
+    if(input.columns() != weightingShift.columns())
+        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.columns != threadsCount");
+    auto& out = weightingShift.getBaseRow();
+    const auto& in = input.getBaseRow();
+    std::copy(in.begin(), in.end(), out.begin());
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::readWeightingFactors(MatrixOnRow<Base> &output) {
+    output.setSize(weightingFactors.rows(), weightingFactors.columns());
+    auto& out = output.getBaseRow();
+    const auto& in = weightingFactors.getBaseRow();
+    std::copy(in.begin(), in.end(), out.begin());
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::writeWeightingFactors(MatrixOnRow<Base> &input) {
+    if(input.rows() != weightingFactors.rows())
+        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.rows != neuronsCount");
+    if(input.columns() != weightingFactors.columns())
+        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.columns != threadsCount");
+    auto& out = weightingFactors.getBaseRow();
     const auto& in = input.getBaseRow();
     std::copy(in.begin(), in.end(), out.begin());
 }
