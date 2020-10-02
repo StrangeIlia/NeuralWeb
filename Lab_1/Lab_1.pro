@@ -22,14 +22,12 @@ SOURCES += \
     MainWindow.cpp
 
 HEADERS += \
-    AbstractNeuralMethods.h \
-    DebugClusterOfNeurons.hpp \
-    ExtendedClusterOfNeurons.hpp \
     MainWindow.h \
     SwitchButton.h \
     math/matrix/MatrixOnRow.hpp \
     neural_networks/AbstractClusterOfNeurons.hpp \
-    neural_networks/AbstractNeuralNetwork.hpp
+    neural_networks/DebugClusterOfNeurons.hpp \
+    neural_networks/SimpleNeuralNetwork.hpp
 
 FORMS += \
     MainWindow.ui
