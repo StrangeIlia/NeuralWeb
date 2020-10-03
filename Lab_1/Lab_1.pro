@@ -16,17 +16,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    AbstractNeuralMethods.cpp \
     SwitchButton.cpp \
     main.cpp \
     MainWindow.cpp
 
 HEADERS += \
+    Binary.hpp \
+    Bipolar.hpp \
     MainWindow.h \
+    MyActivation.hpp \
     SwitchButton.h \
     math/matrix/MatrixOnRow.hpp \
     neural_networks/AbstractClusterOfNeurons.hpp \
-    neural_networks/DebugClusterOfNeurons.hpp \
+    neural_networks/DebugNeuralNetwork.hpp \
     neural_networks/SimpleNeuralNetwork.hpp
 
 FORMS += \

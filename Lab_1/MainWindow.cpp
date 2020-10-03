@@ -10,12 +10,20 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     initImageSet();
-    initTableSize();
+    initTable();
     initImageGroups();
+    initNeuralWebs();
 }
 
 MainWindow::~MainWindow() {
     delete ui;
+    delete bipolar;
+    delete binary;
+    delete my;
+    delete inputBipolar;
+    delete inputBinary;
+    delete binaryNet;
+    delete bipolarNet;
 }
 
 void MainWindow::changeImage(int index) {
@@ -179,7 +187,7 @@ void MainWindow::initImageGroups() {
     ui->imageGroup->setCurrentIndex(0);
 }
 
-void MainWindow::initTableSize() {
+void MainWindow::initTable() {
     ui->table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
     ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
     for(int i = 0; i != ui->table->rowCount(); ++i) {
@@ -187,6 +195,38 @@ void MainWindow::initTableSize() {
             ui->table->setCellWidget(i, j, new SwitchButton(Qt::white, Qt::black));
         }
     }
+    connect(ui->clear, &QAbstractButton::clicked, [this] (bool) { this->clearTableData(); });
+}
+
+void MainWindow::initNeuralWebs() {
+    bipolar = new Bipolar<double>(1);
+    binary = new Binary<double>(1);
+    my = new MyActivation<double>(1, -1, 1);
+
+    int inputCount = ui->table->rowCount() * ui->table->columnCount();
+    inputBipolar = new Bipolar<double>(inputCount);
+    inputBinary = new Binary<double>(inputCount);
+
+    inputBipolar->addOutput(bipolar);
+    inputBipolar->addOutput(my);
+
+    inputBinary->addOutput(binary);
+
+    binaryNet = new DebugNeuralNetwork<double>();
+    bipolarNet = new DebugNeuralNetwork<double>();
+
+    binaryNet->addCluster(binary);
+    binaryNet->addCluster(inputBinary);
+
+    bipolarNet->addCluster(my);
+    bipolarNet->addCluster(bipolar);
+    bipolarNet->addCluster(inputBipolar);
+
+    binaryNet->updateClusterSequence();
+    bipolarNet->updateClusterSequence();
+
+    connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
+    connect(ui->recognizeImage, &QPushButton::clicked, this, &MainWindow::recognize);
 }
 
 void MainWindow::setImageData(int index, const QVector<bool> &vec) {
@@ -234,6 +274,142 @@ void MainWindow::clearTableData() {
             button->setSelected(false);
         }
     }
+}
+
+MainWindow::Singals MainWindow::getOutputSignals() const {
+    int imageGroupCount = ui->imageGroup->count();
+    QVector<MatrixOnRow<double>> outputSingal(imageGroupCount);
+    for(int i = 0; i != outputSingal.size(); ++i) {
+        auto& matrix = outputSingal[i];
+        matrix.setSize(imageGroupCount - 1, 1);
+        for(int j = 0; j != matrix.rows(); ++j) {
+            matrix(j, 0) = (i == j) ? 0 : 1;
+        }
+    }
+    return outputSingal;
+}
+
+MainWindow::Singals MainWindow::getInputsSignals(int group) const {
+    auto groupHash = ui->imageGroup->itemData(group).value<QVariantHash>();
+    QAbstractItemModel* model = groupHash[Images].value<QAbstractItemModel*>();
+    QVector<MatrixOnRow<double>> inputSingal(model->rowCount());
+    for(int i = 0; i != model->rowCount(); ++i) {
+        auto imageHash = model->data(model->index(i, 0), Qt::UserRole).value<QVariantHash>();
+        QVector<bool> vector = imageHash[Matrix].value<QVector<bool>>();
+        auto& matrix = inputSingal[i];
+        matrix.setSize(vector.size(), 1);
+        for(int i = 0; i != vector.size(); ++i) {
+            matrix(i, 0) = vector[i] ? 1 : 0;
+        }
+    }
+    return inputSingal;
+}
+
+bool MainWindow::reqStop(const QVector<Singals> &inputs, const Singals& outputs) const {
+    double eps = std::numeric_limits<double>::epsilon();
+    for(int i = 0; i != outputs.size(); ++i ){
+        const auto& outputMatrix = outputs[i];
+        const auto& vectorInputs = inputs[i];
+        for(int j = 0; j != vectorInputs.size(); ++j) {
+            inputBinary->writeOutputSignalsWithNorm(vectorInputs[j], 0, 1);
+            inputBipolar->writeOutputSignalsWithNorm(vectorInputs[j], 0, 1);
+
+            binaryNet->updateNetwork();
+            bipolarNet->updateNetwork();
+
+            MatrixOnRow<double> binaryMatrix;
+            binary->readOutputSignalsWithNorm(binaryMatrix, 0, 1);
+
+            MatrixOnRow<double> bipolarMatrix;
+            bipolar->readOutputSignalsWithNorm(bipolarMatrix, 0, 1);
+
+            for(int j = 0; j != outputMatrix.rows(); ++j) {
+                double binaryDiff = binaryMatrix(j, 0) - outputMatrix(j, 0);
+                double bipolarDiff = bipolarMatrix(j, 0) - outputMatrix(j, 0);
+                if(std::abs(binaryDiff) > eps) return false;
+                if(std::abs(bipolarDiff) > eps) return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void MainWindow::training(bool /*ignored*/) {
+    Singals outputs = getOutputSignals();
+    QVector<Singals> inputs;
+    for(int i = 0; i != outputs.size(); ++i)
+        inputs.push_back(getInputsSignals(i));
+
+    while(!reqStop(inputs, outputs)) {
+        for(int i = 0; i != outputs.size(); ++i ){
+            const auto& vectorInputs = inputs[i];
+            binary->writeOutputSignalsWithNorm(outputs[i], 0, 1);
+            bipolar->writeOutputSignalsWithNorm(outputs[i], 0, 1);
+
+            for(int j = 0; j != vectorInputs.size(); ++j) {
+                inputBinary->writeOutputSignalsWithNorm(vectorInputs[j], 0, 1);
+                inputBipolar->writeOutputSignalsWithNorm(vectorInputs[j], 0, 1);
+
+                binaryNet->training();
+                bipolarNet->training();
+            }
+        }
+    }
+
+    my->writeShiftWeight(bipolar->getWeightingShift());
+    my->writeWeightingFactors(bipolar->getWeightingFactors());
+
+    ui->result->setText(tr("Нейронные сети обучены"));
+}
+
+void MainWindow::recognize(bool /*ignored*/) {
+    QVector<bool> vector;
+    readTableData(vector);
+    MatrixOnRow<double> input(vector.size(), 1);
+    for(int i = 0; i != vector.size(); ++i)
+        input(i, 0) = vector[i] ? 1 : 0;
+    inputBinary->writeOutputSignalsWithNorm(input, 0, 1);
+    inputBipolar->writeOutputSignalsWithNorm(input, 0, 1);
+    binaryNet->updateNetwork();
+    bipolarNet->updateNetwork();
+
+    QString resultStr;
+    int shiftedIndex = 0;
+    MatrixOnRow<double> output;
+    double eps = std::numeric_limits<double>::epsilon();
+
+    binary->readOutputSignalsWithNorm(output, 0, 1);
+    for(int i = 0; i != output.rows(); ++i) {
+        if(output(i, 0) > eps) {
+            shiftedIndex = i + 1;
+            break;
+        }
+    }
+    resultStr += tr("Бинарная сеть считает, что это группа \"");
+    resultStr += ui->imageGroup->itemText(shiftedIndex) + "\"\n";
+
+    bipolar->readOutputSignalsWithNorm(output, 0, 1);
+    for(int i = 0; i != output.rows(); ++i) {
+        if(output(i, 0) > eps) {
+            shiftedIndex = i + 1;
+            break;
+        }
+    }
+    resultStr += tr("Биполярная сеть считает, что это группа \"");
+    resultStr += ui->imageGroup->itemText(shiftedIndex) + "\"\n";
+
+    my->readOutputSignalsWithNorm(output, 0, 1);
+    for(int i = 0; i != output.rows(); ++i) {
+        if(output(i, 0) > eps) {
+            shiftedIndex = i + 1;
+            break;
+        }
+    }
+    resultStr += tr("Линейная биполярная сеть считает, что это группа \"");
+    resultStr += ui->imageGroup->itemText(shiftedIndex) + "\"\n";
+
+    ui->result->setText(resultStr);
 }
 
 QAbstractItemModel *MainWindow::modelForNewGroup() const {

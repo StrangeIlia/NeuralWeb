@@ -19,6 +19,7 @@ protected:
 
 public:
     SimpleNeuralNetwork();
+    virtual ~SimpleNeuralNetwork() {}
 
     /// Добавляет кластер в сеть
     /// Его размещение наличием входных и выходных кластеров
@@ -32,7 +33,7 @@ public:
 
     /// Обновления списка обхода кластеров
     /// !!! Внимание !!! Данная реализация не поддерживает обход нейрона более чем один раз
-    virtual void updateСlusterSequence();
+    virtual void updateClusterSequence();
 
     /// Обновление ролей кластерова
     virtual void updateClusterRoles();
@@ -40,6 +41,10 @@ public:
     /// Производит обновление сети
     /// При в обновлении участвуют только нейроны в скрытом и выходном слое
     virtual void updateNetwork();
+
+    /// Производит обучение сети
+    /// В обучении участвуют только нейроны в скрытом и выходном слое
+    virtual void training();
 
     /// Очищает нейронную сеть
     void clear();
@@ -76,21 +81,34 @@ bool SimpleNeuralNetwork<Base>::addCluster(Cluster cluster) {
     }
     if(isInput) {
         _inputsClusters.insert(cluster);
+        QSet<Cluster> dependedClusters;
+        for(auto outputCluster : cluster->outputClusters()) {
+            if(_inputsClusters.contains(outputCluster)) {
+                _inputsClusters.remove(outputCluster);
+                dependedClusters.insert(outputCluster);
+            }
+        }
+        for(auto depCluster : dependedClusters)
+            addCluster(depCluster);
+
         return true;
     }
 
-    bool isOutput = false;
+    bool isOutput = true;
+    QSet<Cluster> dependedClusters;
     for(auto outputCluster : cluster->outputClusters()) {
         if(contains(outputCluster)) {
             isOutput = false;
             if(_inputsClusters.contains(outputCluster)) {
-                _hiddenClusters.insert(outputCluster);
                 _inputsClusters.remove(outputCluster);
+                dependedClusters.insert(outputCluster);
             }
         }
     }
     if(isOutput) {
         _outputClusters.insert(cluster);
+        for(auto depCluster : dependedClusters)
+            addCluster(depCluster);
         return true;
     }
 
@@ -144,7 +162,7 @@ bool SimpleNeuralNetwork<Base>::contains(Cluster cluster) {
 }
 
 template<class Base>
-void SimpleNeuralNetwork<Base>::updateСlusterSequence() {
+void SimpleNeuralNetwork<Base>::updateClusterSequence() {
     QSet<Cluster> traversedNeurons = _inputsClusters;
     QSet<Cluster> nextLayer, predLayer = _inputsClusters;
     while(predLayer.size()) {
@@ -158,10 +176,13 @@ void SimpleNeuralNetwork<Base>::updateСlusterSequence() {
                 }
             }
         }
-        for(auto cluster : nextLayer) clusterSequence.insert(cluster);
+
+        for(auto cluster : nextLayer)
+            clusterSequence.push_back(cluster);
         predLayer = std::move(nextLayer);
     }
-    for(auto cluster : _outputClusters) clusterSequence.insert(cluster);
+    for(auto cluster : _outputClusters)
+        clusterSequence.push_back(cluster);
 }
 
 template<class Base>
@@ -176,12 +197,24 @@ void SimpleNeuralNetwork<Base>::updateClusterRoles() {
 
 template<class Base>
 void SimpleNeuralNetwork<Base>::updateNetwork() {
-    if(clusterSequence.empty()) updateСlusterSequence();
+    if(clusterSequence.empty()) updateClusterSequence();
     for(auto cluster : clusterSequence) {
         cluster->calculateSumm();
         cluster->processingSumm();
     }
 }
+
+template<class Base>
+void SimpleNeuralNetwork<Base>::training() {
+    if(clusterSequence.empty()) updateClusterSequence();
+    auto reverseIter = clusterSequence.rbegin();
+    auto reverseEnd = clusterSequence.rend();
+    while (reverseIter != reverseEnd) {
+        (*reverseIter)->correctionFunction();
+        ++reverseIter;
+    }
+}
+
 
 template<class Base>
 void SimpleNeuralNetwork<Base>::clear() {

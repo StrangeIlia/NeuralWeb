@@ -25,16 +25,27 @@ protected:
     ClusterList outputs;
 
 public:
-    AbstractClusterOfNeurons(int neuronsCount, NeuralNetwork<Base> *neuralWeb = nullptr);
+    const MatrixOnRow<Base>& getOutputSignal() const { return outputSignal; }
+    const MatrixOnRow<Base>& getWeightingShift() const { return weightingShift; }
+    const MatrixOnRow<Base>& getWeightingFactors() const { return weightingFactors; }
 
-    ~AbstractClusterOfNeurons();
+public:
+    AbstractClusterOfNeurons(int neuronsCount);
+
+    virtual ~AbstractClusterOfNeurons();
 
 protected:
     /// Функия активации
     virtual Base activationFunction(const Base&) = 0;
 
     /// Функция, которая нормализует значения
-    virtual void normalizeSignal(MatrixOnRow<Base>& matrix, Base minValue, Base maxValue) = 0;
+    virtual void normalizeReadedSignal(MatrixOnRow<Base>& /*matrix*/, Base /*minValue*/, Base /*maxValue*/) {
+    }
+
+
+    /// Функция, которая нормализует значения
+    virtual void normalizeWritedSignal(MatrixOnRow<Base>& /*matrix*/, Base /*minValue*/, Base /*maxValue*/) {
+    }
 
 public:
     /// Число нейронов в кластере
@@ -106,11 +117,17 @@ public:
     /// Чтение выходных сигналов
     void readOutputSignals(MatrixOnRow<Base> &output);
 
+    /// Чтение выходных сигналов
+    void readOutputSignalsWithNorm(MatrixOnRow<Base> &output, Base minValue, Base maxValue);
+
     /// Запись выходных сигналов
     void writeOutputSignals(const MatrixOnRow<Base> &input);
 
-    /// Запись выходных сигналов (с нормализацией)
-    void writeOutputSignals(const MatrixOnRow<Base> &input, Base minValue, Base maxValue);
+    /// Запись выходных сигналов (с нормализацией по функции активации)
+    void writeOutputSignalsWithNorm(const MatrixOnRow<Base> &input);
+
+    /// Запись выходных сигналов (с нормализацией по диапазону)
+    void writeOutputSignalsWithNorm(const MatrixOnRow<Base> &input, Base minValue, Base maxValue);
 
     /// Чтение весов для сдвига
     void readShiftWeight(MatrixOnRow<Base> &output);
@@ -134,7 +151,7 @@ protected:
 
 
 template<class Base>
-AbstractClusterOfNeurons<Base>::AbstractClusterOfNeurons(int neuronsCount, NeuralNetwork<Base> *neuralWeb) {
+AbstractClusterOfNeurons<Base>::AbstractClusterOfNeurons(int neuronsCount) {
     if(neuronsCount < 1)
         throw std::invalid_argument("AbstractClusterOfNeurons::AbstractClusterOfNeurons(int): The minimum number of neurons in a cluster 1");
     outputSignal.setColumns(1);
@@ -201,7 +218,7 @@ void AbstractClusterOfNeurons<Base>::insertNeurons(int index, int count) {
 
 
     for(auto cluster : outputs)
-        cluster.neuronsAppended(this, index, count);
+        cluster->neuronsAppended(this, index, count);
 }
 
 template<class Base>
@@ -301,7 +318,7 @@ void AbstractClusterOfNeurons<Base>::initOutputSignal() {
     auto endSignal = outputSignal.getBaseRow().end();
     auto shiftIter = weightingShift.getBaseRow().begin();
     while(startSignal != endSignal) {
-        *startSignal += *shiftIter;
+        *startSignal = *shiftIter;
         ++startSignal;
         ++shiftIter;
     }
@@ -315,26 +332,28 @@ void AbstractClusterOfNeurons<Base>::calculateSumm() {
         /// Можно использовать итераторы
 
         /// Итератор по выходному сигналу
+        int shift = 0;
         auto startSignal = outputSignal.getBaseRow().begin();
         for(auto cluster : inputs) {
             auto signalIter = startSignal;
 
             /// Итераторы по входному сигналу
-            auto startInput = cluster->outputSignal.begin();
-            auto endInput = cluster->outputSignal.end();
+            auto startInput = cluster->outputSignal.getBaseRow().begin();
+            auto endInput = cluster->outputSignal.getBaseRow().end();
             /// Итераторы по весовым коэффициентам
             auto startWeight = weightingFactors.getBaseRow().begin();
             auto endOfWeights = weightingFactors.getBaseRow().end();
             /// Сдвиг для i - ого кластера
-            startWeight += signalIter - cluster->outputSignal.begin();
+            startWeight += shift;
             while(startWeight != endOfWeights) {
                 auto weightIter = startWeight;
                 for(auto inputIter = startInput; inputIter != endInput; ++inputIter, ++weightIter) {
-                    *signalIter += (*inputIter) * (weightIter);
+                    *signalIter += (*inputIter) * (*weightIter);
                 }
                 startWeight += weightingFactors.columns();
                 ++signalIter;
             }
+            shift += outputSignal.rows();
         }
 
     } else {
@@ -342,9 +361,9 @@ void AbstractClusterOfNeurons<Base>::calculateSumm() {
         int shift = 0;
         for(auto cluster : inputs) {
             for(int i = 0; i != neuronsCount(); ++i) {
-                Base *c = outputSignal.data() + i * cluster->neuronsCount() + shift;
+                Base *c = outputSignal.getBaseRow().data() + i * cluster->neuronsCount() + shift;
                 for(int k = 0; k != cluster->neuronsCount(); ++k) {
-                    Base *b = cluster->outputSignal.data() + k * threadsCount();
+                    Base *b = cluster->outputSignal.getBaseRow().data() + k * threadsCount();
                     Base a = weightingFactors(i, k);
                     for(int j = 0; j != threadsCount(); ++j)
                         c[j] = a * b[j];
@@ -358,7 +377,7 @@ void AbstractClusterOfNeurons<Base>::calculateSumm() {
 
 template<class Base>
 bool AbstractClusterOfNeurons<Base>::processingSumm() {
-    for(auto& value : outputSignal)
+    for(auto& value : outputSignal.getBaseRow())
         value = activationFunction(value);
     return true;
 }
@@ -369,6 +388,12 @@ void AbstractClusterOfNeurons<Base>::readOutputSignals(MatrixOnRow<Base> &output
     auto& out = output.getBaseRow();
     const auto& in = outputSignal.getBaseRow();
     std::copy(in.begin(), in.end(), out.begin());
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::readOutputSignalsWithNorm(MatrixOnRow<Base> &output, Base minValue, Base maxValue) {
+    readOutputSignals(output);
+    normalizeReadedSignal(output, minValue, maxValue);
 }
 
 template<class Base>
@@ -383,9 +408,15 @@ void AbstractClusterOfNeurons<Base>::writeOutputSignals(const MatrixOnRow<Base> 
 }
 
 template<class Base>
-void AbstractClusterOfNeurons<Base>::writeOutputSignals(const MatrixOnRow<Base> &input, Base minValue, Base maxValue) {
+void AbstractClusterOfNeurons<Base>::writeOutputSignalsWithNorm(const MatrixOnRow<Base> &input) {
     writeOutputSignals(input);
-    normalizeSignal(outputSignal, minValue, maxValue);
+    processingSumm();
+}
+
+template<class Base>
+void AbstractClusterOfNeurons<Base>::writeOutputSignalsWithNorm(const MatrixOnRow<Base> &input, Base minValue, Base maxValue) {
+    writeOutputSignals(input);
+    normalizeWritedSignal(outputSignal, minValue, maxValue);
 }
 
 template<class Base>
@@ -428,8 +459,8 @@ void AbstractClusterOfNeurons<Base>::writeWeightingFactors(const MatrixOnRow<Bas
 
 template<class Base>
 Base AbstractClusterOfNeurons<Base>::getInitValue() const {
-    QRandomGenerator *generator = QRandomGenerator::system();
-    return generator->generateDouble();
+    //QRandomGenerator *generator = QRandomGenerator::system();
+    return 0;//generator->generateDouble();
 }
 
 template<class Base>
