@@ -212,8 +212,8 @@ void MainWindow::initNeuralWebs() {
 
     inputBinary->addOutput(binary);
 
-    binaryNet = new DebugNeuralNetwork<double>();
-    bipolarNet = new DebugNeuralNetwork<double>();
+    binaryNet = new DebugNeuralNetwork<double>(true, false);
+    bipolarNet = new DebugNeuralNetwork<double>(true, false);
 
     binaryNet->addCluster(binary);
     binaryNet->addCluster(inputBinary);
@@ -227,6 +227,7 @@ void MainWindow::initNeuralWebs() {
 
     connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
     connect(ui->recognizeImage, &QPushButton::clicked, this, &MainWindow::recognize);
+    connect(ui->info, &QPushButton::clicked, this, &MainWindow::printfInfo);
 }
 
 void MainWindow::setImageData(int index, const QVector<bool> &vec) {
@@ -335,6 +336,37 @@ bool MainWindow::reqStop(const QVector<Singals> &inputs, const Singals& outputs)
     return true;
 }
 
+void MainWindow::initMy(const QVector<Singals> &inputs) {
+    if(inputs.count() > 2 || bipolar->neuronsCount() != 1) return;
+
+    double avgS1 = 0, avgS2 = 0;
+    for(int j = 0; j != inputs[0].size(); ++j) {
+        inputBipolar->writeOutputSignalsWithNorm(inputs[0][j], 0, 1);
+
+        bipolarNet->updateNetwork();
+
+        MatrixOnRow<double> summSignal = bipolarNet->summSignal()[bipolar];
+        for(int ii = 0; ii != summSignal.rows(); ++ii)
+            avgS1 += summSignal(ii, 0) / inputs[0].size();
+    }
+
+    for(int j = 0; j != inputs[1].size(); ++j) {
+        inputBipolar->writeOutputSignalsWithNorm(inputs[1][j], 0, 1);
+
+        bipolarNet->updateNetwork();
+
+        MatrixOnRow<double> summSignal = bipolarNet->summSignal()[bipolar];
+        for(int ii = 0; ii != summSignal.rows(); ++ii)
+            avgS2 += summSignal(ii, 0) / inputs[1].size();
+    }
+
+    double avg = (avgS1 + avgS2) / 2;
+    double shift = std::abs(avgS1 - avgS2) / 6;
+
+    my->q1(avg - shift);
+    my->q2(avg + shift);
+}
+
 void MainWindow::training(bool /*ignored*/) {
     Singals outputs = getOutputSignals();
     QVector<Singals> inputs;
@@ -355,10 +387,12 @@ void MainWindow::training(bool /*ignored*/) {
                 bipolarNet->training();
             }
         }
+        printfInfo(false);
     }
 
     my->writeShiftWeight(bipolar->getWeightingShift());
     my->writeWeightingFactors(bipolar->getWeightingFactors());
+    initMy(inputs);
 
     ui->result->setText(tr("Нейронные сети обучены"));
 }
@@ -375,41 +409,77 @@ void MainWindow::recognize(bool /*ignored*/) {
     bipolarNet->updateNetwork();
 
     QString resultStr;
-    int shiftedIndex = 0;
     MatrixOnRow<double> output;
     double eps = std::numeric_limits<double>::epsilon();
+    auto functor = [&output, eps] () {
+        int shiftedIndex = 0;
+        for(int i = 0; i != output.rows(); ++i) {
+            if(output(i, 0) > eps) {
+                shiftedIndex = i + 1;
+                break;
+            }
+        }
+        return shiftedIndex;
+    };
+
 
     binary->readOutputSignalsWithNorm(output, 0, 1);
-    for(int i = 0; i != output.rows(); ++i) {
-        if(output(i, 0) > eps) {
-            shiftedIndex = i + 1;
-            break;
-        }
-    }
     resultStr += tr("Бинарная сеть считает, что это группа \"");
-    resultStr += ui->imageGroup->itemText(shiftedIndex) + "\"\n";
+    resultStr += ui->imageGroup->itemText(functor()) + "\"\n";
 
     bipolar->readOutputSignalsWithNorm(output, 0, 1);
-    for(int i = 0; i != output.rows(); ++i) {
-        if(output(i, 0) > eps) {
-            shiftedIndex = i + 1;
-            break;
-        }
-    }
     resultStr += tr("Биполярная сеть считает, что это группа \"");
-    resultStr += ui->imageGroup->itemText(shiftedIndex) + "\"\n";
+    resultStr += ui->imageGroup->itemText(functor()) + "\"\n";
 
     my->readOutputSignalsWithNorm(output, 0, 1);
-    for(int i = 0; i != output.rows(); ++i) {
-        if(output(i, 0) > eps) {
-            shiftedIndex = i + 1;
-            break;
-        }
-    }
     resultStr += tr("Линейная биполярная сеть считает, что это группа \"");
-    resultStr += ui->imageGroup->itemText(shiftedIndex) + "\"\n";
+    resultStr += ui->imageGroup->itemText(functor()) + "\"\n";
 
     ui->result->setText(resultStr);
+}
+
+void MainWindow::printfInfo(bool /*ignored*/) {
+    QString str;
+    QTextStream out(&str);
+
+    int rowsCount = ui->table->rowCount();
+    int columnsCount = ui->table->columnCount();
+
+    auto functor = [&out, rowsCount, columnsCount] (AbstractClusterOfNeurons<double> *cluster){
+        for(int k = 0; k != cluster->neuronsCount(); ++k) {
+            out << tr("Весовые коэффициенты для ");
+            out << QString::number(k + 1) << tr(" нейрона");
+            const auto &shift = cluster->getWeightingShift();
+            const auto &weight = cluster->getWeightingFactors();
+            for(int i = 0; i != rowsCount; ++i) {
+                out << "\n";
+                out.setFieldWidth(8);
+                for(int j = 0; j != columnsCount; ++j)
+                    out << round(weight(i, j) * 1e+5) * 1e-5 << " ";
+                out.setFieldWidth(0);
+            }
+            out.setFieldWidth(8);
+            out << shift(k, 0) << " ";
+            out.setFieldWidth(0);
+            out << "\n";
+        }
+    };
+
+    out << tr("Информация по биполярной функции:\n");
+    functor(bipolar); out << "\n\n\n\n";
+
+    out << tr("Информация по бинарной функции:\n");
+    functor(binary); out << "\n\n\n\n";
+
+    out << tr("Информация по линейной биполярной функции:\n");
+    out << "Q1 = " << QString::number(my->q1()) << "\n";
+    out << "Q2 = " << QString::number(my->q2()) << "\n";
+    out << "k = " << QString::number(2 / (my->q2() - my->q1())) << "\n";
+    functor(binary);
+
+    Info info(this);
+    info.doc()->setPlainText(str);
+    info.exec();
 }
 
 QAbstractItemModel *MainWindow::modelForNewGroup() const {

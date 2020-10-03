@@ -14,6 +14,9 @@
 #include "MyActivation.hpp"
 
 #include <QVector>
+#include <QTextStream>
+
+#include "Info.h"
 
 #include "neural_networks/DebugNeuralNetwork.hpp"
 
@@ -66,8 +69,10 @@ private:
     Singals getOutputSignals() const;
     Singals getInputsSignals(int group) const;
     bool reqStop(const QVector<Singals> &inputs, const Singals& outputs) const;
+    void initMy(const QVector<Singals> &inputs);
     void training(bool ignored);
     void recognize(bool ignored);
+    void printfInfo(bool ignored);
 
     QAbstractItemModel *modelForNewGroup() const;
 

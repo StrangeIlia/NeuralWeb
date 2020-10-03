@@ -261,10 +261,10 @@
            <widget class="QWidget" name="widget_8" native="true">
             <layout class="QHBoxLayout" name="horizontalLayout_5">
              <property name="leftMargin">
-              <number>0</number>
+              <number>9</number>
              </property>
              <property name="rightMargin">
-              <number>0</number>
+              <number>9</number>
              </property>
              <item>
               <widget class="QPushButton" name="learning">
@@ -284,10 +284,23 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="info">
-            <property name="text">
-             <string>Вывести служебную информацию</string>
-            </property>
+           <widget class="QWidget" name="widget_11" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QPushButton" name="centring">
+               <property name="text">
+                <string>Центрировать веса</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="info">
+               <property name="text">
+                <string>Вывести служебную информацию</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
          </layout>
