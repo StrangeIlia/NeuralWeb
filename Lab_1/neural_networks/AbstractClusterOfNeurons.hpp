@@ -314,13 +314,21 @@ void AbstractClusterOfNeurons<Base>::clearOutputSignal() {
 
 template<class Base>
 void AbstractClusterOfNeurons<Base>::initOutputSignal() {
-    auto startSignal = outputSignal.getBaseRow().begin();
-    auto endSignal = outputSignal.getBaseRow().end();
-    auto shiftIter = weightingShift.getBaseRow().begin();
-    while(startSignal != endSignal) {
-        *startSignal = *shiftIter;
-        ++startSignal;
-        ++shiftIter;
+    if(threadsCount() == 1) {
+        std::copy(weightingShift.getBaseRow().begin(),
+                  weightingShift.getBaseRow().end(),
+                  outputSignal.getBaseRow().begin());
+    } else {
+        auto startSignal = outputSignal.getBaseRow().begin();
+        auto endSignal = outputSignal.getBaseRow().end();
+        auto shiftIter = weightingShift.getBaseRow().begin();
+        while(startSignal != endSignal) {
+            for(int i = 0; i != threadsCount(); ++i) {
+                *startSignal = *shiftIter;
+                ++startSignal;
+            }
+            ++shiftIter;
+        }
     }
 }
 
@@ -432,7 +440,7 @@ void AbstractClusterOfNeurons<Base>::writeShiftWeight(const MatrixOnRow<Base> &i
     if(input.rows() != weightingShift.rows())
         throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.rows != neuronsCount");
     if(input.columns() != weightingShift.columns())
-        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.columns != threadsCount");
+        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.columns != 1");
     auto& out = weightingShift.getBaseRow();
     const auto& in = input.getBaseRow();
     std::copy(in.begin(), in.end(), out.begin());
@@ -451,7 +459,7 @@ void AbstractClusterOfNeurons<Base>::writeWeightingFactors(const MatrixOnRow<Bas
     if(input.rows() != weightingFactors.rows())
         throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.rows != neuronsCount");
     if(input.columns() != weightingFactors.columns())
-        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.columns != threadsCount");
+        throw std::invalid_argument("AbstractClusterOfNeurons::writeShiftWeight(MatrixOnRow&) input.columns != inputsCount");
     auto& out = weightingFactors.getBaseRow();
     const auto& in = input.getBaseRow();
     std::copy(in.begin(), in.end(), out.begin());

@@ -134,7 +134,7 @@ void MatrixOnRow<BaseType, IndexType>::removeColumns(IndexType first, IndexType 
     if(first > _columns) throw std::invalid_argument("MatrixOnRow::removeColumns: first не может быть больше количества столбцов");
     if(last < 0) throw std::invalid_argument("MatrixOnRow::removeColumns: first не может быть отрицательным числом");
     if(last > _columns) throw std::invalid_argument("MatrixOnRow::removeColumns: first не может быть больше количества столбцов");
-    _columns -= first - last + 1;
+    _columns -= last - first + 1;
     for(int i = 0; i != _rows; ++i) {
         auto shift = _matrix.begin() + i * _columns;
         _matrix.erase(shift + first, shift + last + 1);

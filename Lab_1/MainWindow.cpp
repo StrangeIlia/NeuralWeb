@@ -30,11 +30,11 @@ void MainWindow::changeImage(int index) {
     ui->imageInfo->setText("");
     auto variant = ui->image->itemData(index);
     if(!variant.isValid() || !variant.canConvert<QVariantHash>()) {
-        QMessageBox messageBox(this);
-        messageBox.setWindowTitle(tr("Внутренняя ошибка"));
-        messageBox.setText(tr("У изображения нет множества пользовательских данных"));
-        messageBox.exec();
-        this->close();
+//        QMessageBox messageBox(this);
+//        messageBox.setWindowTitle(tr("Внутренняя ошибка"));
+//        messageBox.setText(tr("У изображения нет множества пользовательских данных"));
+//        messageBox.exec();
+//        this->close();
         return;
     }
     auto hash = variant.value<QVariantHash>();
@@ -387,7 +387,6 @@ void MainWindow::training(bool /*ignored*/) {
                 bipolarNet->training();
             }
         }
-        printfInfo(false);
     }
 
     my->writeShiftWeight(bipolar->getWeightingShift());
@@ -454,8 +453,10 @@ void MainWindow::printfInfo(bool /*ignored*/) {
             for(int i = 0; i != rowsCount; ++i) {
                 out << "\n";
                 out.setFieldWidth(8);
-                for(int j = 0; j != columnsCount; ++j)
-                    out << round(weight(i, j) * 1e+5) * 1e-5 << " ";
+                for(int j = 0; j != columnsCount; ++j) {
+                    auto value = round(weight(0, i * columnsCount + j) * 1e+5) * 1e-5;
+                    out << value << " ";
+                }
                 out.setFieldWidth(0);
             }
             out.setFieldWidth(8);
@@ -475,7 +476,7 @@ void MainWindow::printfInfo(bool /*ignored*/) {
     out << "Q1 = " << QString::number(my->q1()) << "\n";
     out << "Q2 = " << QString::number(my->q2()) << "\n";
     out << "k = " << QString::number(2 / (my->q2() - my->q1())) << "\n";
-    functor(binary);
+    functor(my);
 
     Info info(this);
     info.doc()->setPlainText(str);
