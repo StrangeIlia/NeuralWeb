@@ -1,28 +1,37 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QHash>
+#include <QVector>
+#include <QTextStream>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QStandardItemModel>
 
+#include <cmath>
 #include <limits>
 
-#include "SwitchButton.h"
-
-#include "Binary.hpp"
-#include "Bipolar.hpp"
-#include "MyActivation.hpp"
-
-#include <QVector>
-#include <QTextStream>
-
 #include "Info.h"
-
-#include "neural_networks/DebugNeuralNetwork.hpp"
+#include "Binary.h"
+#include "Bipolar.h"
+#include "SwitchButton.h"
+#include "LinearBipolar.h"
+#include "BinaryConverter.h"
+#include "BipolarConverter.h"
+#include "neural_networks/DebugNeuralNetwork.h"
+#include "neural_networks/NeuralNetworkTrainer.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+typedef QSharedPointer<Matrix>                  MatrixPtr;
+typedef QSharedPointer<QVariantHash>            QVariantHashPtr;
+typedef QSharedPointer<QAbstractItemModel>      QAbstractItemModelPtr;
+
+Q_DECLARE_METATYPE(MatrixPtr);
+Q_DECLARE_METATYPE(QVariantHashPtr);
+Q_DECLARE_METATYPE(QAbstractItemModelPtr);
 
 class MainWindow : public QMainWindow
 {
@@ -35,48 +44,65 @@ public:
 private slots:
     void changeImage(int index);
     void changeImageSet(int index);
-    void addImage(bool);
-    void removeImage(bool);
-    void saveImage(bool);
+    void addImage(bool ignored = false);
+    void removeImage(bool ignored = false);
+    void saveImage(bool ignored = false);
+    void addGroup(bool ignored = false);
+    void removeGroup(bool ignored = false);
+    /// Чтобы можно было использовать без указания значения ignored
+    void clearTableData(bool ignored = false);
+    void training(bool ignored = false);
+    void recognize(bool ignored = false);
 
 private:
     Ui::MainWindow *ui;
-    Bipolar<double> *bipolar;
-    Binary<double> *binary;
-    MyActivation<double> *my;
-    Bipolar<double> *inputBipolar;
-    Binary<double> *inputBinary;
-    DebugNeuralNetwork<double> *binaryNet;
-    DebugNeuralNetwork<double> *bipolarNet;
 
+    /// Эти кластеры считают
+    Binary *binary;
+    Bipolar *bipolar;
+    LinearBipolar *linearBipolar;
+
+    /// Это входные кластеры
+    Binary *inputBinary;
+    Bipolar *inputBipolar;
+
+    /// Это нейронные сети
+    DebugNeuralNetwork *binaryNet;
+    DebugNeuralNetwork *bipolarNet;
+
+    template<class T>
+    T dataInHash(QVariantHash *hash, QString field);
+
+    QAbstractItemModelPtr model(int groupIndex);
+    void setModel(int groupIndex, QAbstractItemModelPtr model);
+
+    MatrixPtr table();
+    void setTable(MatrixPtr matrix);
+
+    MatrixPtr matrix(int groupIndex, int imageIndex);
+    void setMatrix(int groupIndex, int imageIndex, MatrixPtr matrix);
+
+    void addImage(int group);
+    void removeImage(int group, int image);
 
     void showMessage();
-    void addGroup(bool isValid);
-    void removeGroup(bool isValid);
 
     void initImageSet();
     void initImageGroups();
     void initTable();
     void initNeuralWebs();
+    void deleteUnusedImages(int imageGroup);
 
-    void setImageData(int index, const QVector<bool> &vec);
-    void setTableData(const QVector<bool> &vec);
-    void readTableData(QVector<bool> &vec);
-    void clearTableData();
+    QVector<MatrixPtr> images(int groupIndex);
 
-    typedef QVector<MatrixOnRow<double>> Singals;
-
-    Singals getOutputSignals() const;
-    Singals getInputsSignals(int group) const;
-    bool reqStop(const QVector<Singals> &inputs, const Singals& outputs) const;
-    void initMy(const QVector<Singals> &inputs);
-    void training(bool ignored);
-    void recognize(bool ignored);
     void printfInfo(bool ignored);
 
-    QAbstractItemModel *modelForNewGroup() const;
+    QAbstractItemModelPtr modelForNewGroup() const;
 
-    static QString Images;
-    static QString Matrix;
+    static QString Models;
+    static QString MatrixData;
 };
+
+
+
 #endif // MAINWINDOW_H

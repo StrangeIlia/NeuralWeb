@@ -1,71 +1,12 @@
-#ifndef NEURALNETWORK_H
-#define NEURALNETWORK_H
+#include "SimpleNeuralNetwork.h"
 
-#include <QSet>
-#include "AbstractClusterOfNeurons.hpp"
 
-template<class Base>
-class SimpleNeuralNetwork {
-public:
-    typedef AbstractClusterOfNeurons<Base> *Cluster;
-    typedef QSet<Cluster> ClusterSet;
-    typedef QList<Cluster> ClusterQueue;
-
-protected:
-    ClusterSet _inputsClusters;
-    ClusterSet _outputClusters;
-    ClusterSet _hiddenClusters;
-    ClusterQueue clusterSequence;
-
-public:
-    SimpleNeuralNetwork();
-    virtual ~SimpleNeuralNetwork() {}
-
-    /// Добавляет кластер в сеть
-    /// Его размещение наличием входных и выходных кластеров
-    virtual bool addCluster(Cluster cluster);
-
-    /// Удаление кластера из сети
-    virtual bool removeCluster(Cluster cluster);
-
-    /// Возвращает истина, если данный кластер есть в сети
-    bool contains(Cluster cluster);
-
-    /// Обновления списка обхода кластеров
-    /// !!! Внимание !!! Данная реализация не поддерживает обход нейрона более чем один раз
-    virtual void updateClusterSequence();
-
-    /// Обновление ролей кластерова
-    virtual void updateClusterRoles();
-
-    /// Производит обновление сети
-    /// При в обновлении участвуют только нейроны в скрытом и выходном слое
-    virtual void updateNetwork();
-
-    /// Производит обучение сети
-    /// В обучении участвуют только нейроны в скрытом и выходном слое
-    virtual void training();
-
-    /// Очищает нейронную сеть
-    void clear();
-
-    /// Получить множество входных кластеров
-    const ClusterSet& inputsClusters() const;
-
-    /// Получить множество выходных кластеров
-    const ClusterSet& outputClusters() const;
-
-    /// Получить множество скрытых кластеров
-    const ClusterSet& hiddenClusters() const;
-};
-
-template<class Base>
-SimpleNeuralNetwork<Base>::SimpleNeuralNetwork() {
+SimpleNeuralNetwork::SimpleNeuralNetwork() {
 
 }
 
-template<class Base>
-bool SimpleNeuralNetwork<Base>::addCluster(Cluster cluster) {
+
+bool SimpleNeuralNetwork::addCluster(Cluster cluster) {
     if(contains(cluster)) return false;
     clusterSequence.clear();
 
@@ -117,8 +58,8 @@ bool SimpleNeuralNetwork<Base>::addCluster(Cluster cluster) {
     return true;
 }
 
-template<class Base>
-bool SimpleNeuralNetwork<Base>::removeCluster(Cluster cluster) {
+
+bool SimpleNeuralNetwork::removeCluster(Cluster cluster) {
     if(!contains(cluster)) return false;
     clusterSequence.clear();
 
@@ -151,8 +92,8 @@ bool SimpleNeuralNetwork<Base>::removeCluster(Cluster cluster) {
     return true;
 }
 
-template<class Base>
-bool SimpleNeuralNetwork<Base>::contains(Cluster cluster) {
+
+bool SimpleNeuralNetwork::contains(Cluster cluster) {
     bool cont = _hiddenClusters.contains(cluster);
     if(cont) return true;
     cont = _inputsClusters.contains(cluster);
@@ -161,8 +102,8 @@ bool SimpleNeuralNetwork<Base>::contains(Cluster cluster) {
     return cont;
 }
 
-template<class Base>
-void SimpleNeuralNetwork<Base>::updateClusterSequence() {
+
+void SimpleNeuralNetwork::updateClusterSequence() {
     QSet<Cluster> traversedNeurons = _inputsClusters;
     QSet<Cluster> nextLayer, predLayer = _inputsClusters;
     while(predLayer.size()) {
@@ -185,8 +126,8 @@ void SimpleNeuralNetwork<Base>::updateClusterSequence() {
         clusterSequence.push_back(cluster);
 }
 
-template<class Base>
-void SimpleNeuralNetwork<Base>::updateClusterRoles() {
+
+void SimpleNeuralNetwork::updateClusterRoles() {
     QSet<Cluster> tmp = _hiddenClusters;
     tmp.intersect(_inputsClusters);
     tmp.intersect(_outputClusters);
@@ -195,48 +136,44 @@ void SimpleNeuralNetwork<Base>::updateClusterRoles() {
         addCluster(cluster);
 }
 
-template<class Base>
-void SimpleNeuralNetwork<Base>::updateNetwork() {
+
+void SimpleNeuralNetwork::updateNetwork() {
     if(clusterSequence.empty()) updateClusterSequence();
     for(auto cluster : clusterSequence) {
-        cluster->calculateSumm();
-        cluster->processingSumm();
+        cluster->summation();
+        cluster->activation();
     }
 }
 
-template<class Base>
-void SimpleNeuralNetwork<Base>::training() {
+
+void SimpleNeuralNetwork::training() {
     if(clusterSequence.empty()) updateClusterSequence();
     auto reverseIter = clusterSequence.rbegin();
     auto reverseEnd = clusterSequence.rend();
     while (reverseIter != reverseEnd) {
-        (*reverseIter)->correctionFunction();
+        (*reverseIter)->correction();
         ++reverseIter;
     }
 }
 
-
-template<class Base>
-void SimpleNeuralNetwork<Base>::clear() {
+void SimpleNeuralNetwork::clear() {
     _inputsClusters.clear();
     _outputClusters.clear();
     _hiddenClusters.clear();
     clusterSequence.clear();
 }
 
-template<class Base>
-const typename SimpleNeuralNetwork<Base>::ClusterSet& SimpleNeuralNetwork<Base>::inputsClusters() const {
+
+const ClusterSet& SimpleNeuralNetwork::inputClusters() const {
     return _inputsClusters;
 }
 
-template<class Base>
-const typename SimpleNeuralNetwork<Base>::ClusterSet& SimpleNeuralNetwork<Base>::outputClusters() const {
+
+const ClusterSet& SimpleNeuralNetwork::outputClusters() const {
     return _outputClusters;
 }
 
-template<class Base>
-const typename SimpleNeuralNetwork<Base>::ClusterSet& SimpleNeuralNetwork<Base>::hiddenClusters() const {
+
+const ClusterSet& SimpleNeuralNetwork::hiddenClusters() const {
     return _hiddenClusters;
 }
-
-#endif // NEURALNETWORK_H

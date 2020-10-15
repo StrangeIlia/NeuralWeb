@@ -16,22 +16,36 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    Binary.cpp \
+    BinaryConverter.cpp \
+    Bipolar.cpp \
+    BipolarConverter.cpp \
     Info.cpp \
+    LinerBipolar.cpp \
     SwitchButton.cpp \
     main.cpp \
-    MainWindow.cpp
+    MainWindow.cpp \
+    neural_networks/AbstractClusterOfNeurons.cpp \
+    neural_networks/AbstractSignalConverter.cpp \
+    neural_networks/DebugNeuralNetwork.cpp \
+    neural_networks/NeuralNetworkTrainer.cpp \
+    neural_networks/SimpleNeuralNetwork.cpp
 
 HEADERS += \
-    Binary.hpp \
-    Bipolar.hpp \
+    Binary.h \
+    BinaryConverter.h \
+    Bipolar.h \
+    BipolarConverter.h \
     Info.h \
+    LinearBipolar.h \
     MainWindow.h \
-    MyActivation.hpp \
     SwitchButton.h \
     math/matrix/MatrixOnRow.hpp \
-    neural_networks/AbstractClusterOfNeurons.hpp \
-    neural_networks/DebugNeuralNetwork.hpp \
-    neural_networks/SimpleNeuralNetwork.hpp
+    neural_networks/AbstractClusterOfNeurons.h \
+    neural_networks/AbstractSignalConverter.h \
+    neural_networks/DebugNeuralNetwork.h \
+    neural_networks/NeuralNetworkTrainer.h \
+    neural_networks/SimpleNeuralNetwork.h
 
 FORMS += \
     Info.ui \
