@@ -63,7 +63,7 @@ void NeuralNetworkTrainer::removeInvalidSet() {
     for(auto value : set) addTrainingSet(value);
 }
 
-void NeuralNetworkTrainer::training(BaseValueType eps, int maxIteration) {
+void NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType eps, int maxIteration) {
     bool hasChanged = true;
     int iterationNumber = 0;
     while(iterationNumber != maxIteration) {
@@ -106,7 +106,7 @@ void NeuralNetworkTrainer::training(BaseValueType eps, int maxIteration) {
                 const auto &requiredMatrix = iter.value();
                 iter.key()->setOutputSignal(requiredMatrix);
             }
-            _networkLearn->training();
+            _networkLearn->training(learningFactor);
         }
 
         ++iterationNumber;

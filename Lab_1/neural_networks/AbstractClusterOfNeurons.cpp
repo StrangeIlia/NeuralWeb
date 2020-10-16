@@ -277,18 +277,20 @@ bool AbstractClusterOfNeurons::activation() {
 }
 
 
-void AbstractClusterOfNeurons::correction() {
+void AbstractClusterOfNeurons::correction(BaseValueType learningFactor) {
     int shift = 0;
+    if(learningFactor <= 0) learningFactor = std::numeric_limits<BaseValueType>::epsilon();
+    if(learningFactor > 1)  learningFactor = 1;
     for(auto cluster : this->_inputs) {
         for(int th = 0; th != this->threadsCount(); ++th) {
             for(int i = 0; i != this->neuronsCount(); ++i) {
-                auto y = 2 * this->_outputSignal(i, th) - 1;
+                auto y = this->_outputSignal(i, th);
                 for(int j = 0; j != cluster->neuronsCount(); ++j) {
                     auto x = cluster->_outputSignal(j, th);
-                    this->_weightingFactors(i, j + shift) += correct(x, y);
+                    this->_weightingFactors(i, j + shift) += learningFactor * correct(x, y);
                 }
 
-                this->_weightingShift(i, th) += correct(1, y);
+                this->_weightingShift(i, th) += learningFactor * correct(1, y);
             }
         }
         shift += cluster->neuronsCount();

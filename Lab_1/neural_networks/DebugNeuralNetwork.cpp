@@ -15,10 +15,10 @@ void DebugNeuralNetwork::updateNetwork() {
             _summSignal.insert(cluster, cluster->outputSignal());
             cluster->activation();
         }
-    }
+    } else this->SimpleNeuralNetwork::updateNetwork();
 }
 
-void DebugNeuralNetwork::training() {
+void DebugNeuralNetwork::training(BaseValueType learningFactor) {
     if(_saveWeigth) {
         _lastWeights.clear();
 
@@ -31,11 +31,11 @@ void DebugNeuralNetwork::training() {
             reserve.shift = cluster->weightingShift();
             reserve.factors = cluster->weightingFactors();
             _lastWeights.insert(cluster, reserve);
-            cluster->correction();
+            cluster->correction(learningFactor);
             ++reverseIter;
         }
     }
-    this->SimpleNeuralNetwork::training();
+    this->SimpleNeuralNetwork::training(learningFactor);
 }
 
 QHash<Cluster, DebugNeuralNetwork::Weights> DebugNeuralNetwork::lastWeights() const {

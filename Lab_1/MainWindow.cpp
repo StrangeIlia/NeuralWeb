@@ -13,6 +13,8 @@ MainWindow::MainWindow(QWidget *parent)
     initTable();
     initImageGroups();
     initNeuralWebs();
+
+    qDebug() << "";
 }
 
 MainWindow::~MainWindow() {
@@ -24,6 +26,7 @@ MainWindow::~MainWindow() {
     delete inputBinary;
     delete binaryNet;
     delete bipolarNet;
+    delete linearBipolarNet;
 }
 
 void MainWindow::changeImage(int imageIndex) {
@@ -32,11 +35,13 @@ void MainWindow::changeImage(int imageIndex) {
 }
 
 void MainWindow::changeImageSet(int groupIndex) {
+    deleteUnusedImages(groupIndex);
     ui->image->setModel(model(groupIndex).data());
 }
 
 void MainWindow::addImage(bool /*ignored*/) {
     addImage(ui->imageGroup->currentIndex());
+    ui->image->setCurrentIndex(ui->image->count() - 1);
 }
 
 void MainWindow::removeImage(bool /*ignored*/) {
@@ -52,15 +57,13 @@ void MainWindow::removeImage(bool /*ignored*/) {
 
 void MainWindow::saveImage(bool /*value*/) {
     ui->imageInfo->setText("");
+    ui->result->setText(tr(""));
     int imageIndex = ui->image->currentIndex();
     int groupIndex = ui->imageGroup->currentIndex();
-    setMatrix(imageIndex, groupIndex, table());
+    setMatrix(groupIndex, imageIndex, table());
 }
 
 void MainWindow::addGroup(bool /*ignored*/) {
-    showMessage();
-    return;
-
     QString name = tr("Новая группа");
     if(ui->imageGroup->findText(name) != -1) {
         int index = 2;
@@ -71,8 +74,7 @@ void MainWindow::addGroup(bool /*ignored*/) {
         }
         name = tmpName;
     }
-    setModel(ui->imageGroup->count(), modelForNewGroup());
-    ui->imageGroup->setCurrentIndex(ui->imageGroup->count() - 1);
+    ui->imageGroup->insertItem(ui->imageGroup->count(), name);
 }
 
 void MainWindow::removeGroup(bool /*ignored*/) {
@@ -109,11 +111,13 @@ void MainWindow::clearTableData(bool /*ignored*/) {
 }
 
 void MainWindow::training(bool /*ignored*/) {
+    if(ui->imageGroup->count() != 2) return;
     deleteUnusedImages(ui->imageGroup->currentIndex());
     NeuralNetworkTrainer binaryTrainer(binaryNet, true);
     NeuralNetworkTrainer bipolarTrainer(bipolarNet, true);
-    QSharedPointer<AbstractSignalConverter> binaryConverter(new BinaryConverter);
-    QSharedPointer<AbstractSignalConverter> bipolarConverter(new BipolarConverter);
+    SignalConverterPtr binaryConverter(new BinaryConverter);
+    SignalConverterPtr bipolarConverter(new BipolarConverter);
+
     for(int i = 0; i != ui->imageGroup->count(); ++i) {
         NeuralNetworkTrainer::Signal binaryInputSignal;
         NeuralNetworkTrainer::Signal bipolarInputSignal;
@@ -130,15 +134,136 @@ void MainWindow::training(bool /*ignored*/) {
             binaryInputSignal[inputBinary] = binaryMatrix;
             bipolarInputSignal[inputBipolar] = bipolarMatrix;
         }
+
+        NeuralNetworkTrainer::Signal binaryOutputSignal;
+        NeuralNetworkTrainer::Signal bipolarOutputSignal;
+
+        Matrix out(1, 1);
+        out(0, 0) = i;
+        Matrix binaryMatrix = out;
+        Matrix bipolarMatrix = out;
+        binaryConverter->convertToSignal(binaryMatrix);
+        bipolarConverter->convertToSignal(bipolarMatrix);
+
+        binaryOutputSignal[binary] = binaryMatrix;
+        bipolarOutputSignal[bipolar] = bipolarMatrix;
+
+        binaryTrainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
+                                         binaryInputSignal,
+                                         binaryOutputSignal,
+                                     });
+
+        bipolarTrainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
+                                         bipolarInputSignal,
+                                         bipolarOutputSignal,
+                                     });
     }
+
+    double learningFactor = ui->learningFactor->value();
+
+    binaryTrainer.training(learningFactor);
+    bipolarTrainer.training(learningFactor);
+    updateLinearBipolar();
+    ui->result->setText(tr("Нейронные сети обучены"));
 }
 
 void MainWindow::recognize(bool /*ignored*/) {
+    ui->result->setText("");
+    MatrixPtr matrix = table();
+    SignalConverterPtr binaryConverter(new BinaryConverter);
+    SignalConverterPtr bipolarConverter(new BipolarConverter);
 
+    Matrix binaryMatrix = *matrix;
+    Matrix bipolarMatrix = *matrix;
+    binaryConverter->convertToSignal(binaryMatrix);
+    bipolarConverter->convertToSignal(bipolarMatrix);
+    inputBinary->setOutputSignal(binaryMatrix);
+    inputBipolar->setOutputSignal(bipolarMatrix);
+
+    binaryNet->updateNetwork();
+    bipolarNet->updateNetwork();
+    linearBipolarNet->updateNetwork();
+
+    binaryMatrix = binary->outputSignal();
+    binaryConverter->convertToData(binaryMatrix);
+    binaryMatrix(0, 0) = round(binaryMatrix(0, 0));
+    ui->result->setText(tr("Бинарный нейрон считает, что это изображение относится к группе:"));
+    ui->result->setText(ui->result->text() + "\"" + ui->imageGroup->itemText(binaryMatrix(0, 0)) + "\"\n");
+
+    bipolarMatrix = bipolar->outputSignal();
+    bipolarConverter->convertToData(bipolarMatrix);
+    bipolarMatrix(0, 0) = round(bipolarMatrix(0, 0));
+    ui->result->setText(ui->result->text() + tr("Биполярный нейрон считает, что это изображение относится к группе:"));
+    ui->result->setText(ui->result->text() + "\"" + ui->imageGroup->itemText(bipolarMatrix(0, 0)) + "\"\n");
+
+    bipolarMatrix = linearBipolar->outputSignal();
+    bipolarConverter->convertToData(bipolarMatrix);
+    bipolarMatrix(0, 0) = round(bipolarMatrix(0, 0));
+    ui->result->setText(ui->result->text() + tr("Линейный биполярный нейрон считает, что это изображение относится к группе:"));
+    ui->result->setText(ui->result->text() + "\"" + ui->imageGroup->itemText(bipolarMatrix(0, 0)) + "\"\n");
+}
+
+void MainWindow::centring(bool /*ignored*/) {
+    binaryNet->setSaveSummSignal(true);
+    bipolarNet->setSaveSummSignal(true);
+
+    SignalConverterPtr binaryConverter(new BinaryConverter);
+    SignalConverterPtr bipolarConverter(new BipolarConverter);
+
+    int signalCount = 0;
+    Matrix avgBinarySignal, avgBipolarSignal;
+
+    avgBinarySignal.setSize(bipolar->neuronsCount(), 1);
+    avgBipolarSignal.setSize(bipolar->neuronsCount(), 1);
+
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        auto images = this->images(i);
+        for(auto matrixptr : images) {
+            Matrix binaryMatrix = *matrixptr;
+            Matrix bipolarMatrix = *matrixptr;
+            binaryConverter->convertToSignal(binaryMatrix);
+            bipolarConverter->convertToSignal(bipolarMatrix);
+            inputBinary->setOutputSignal(binaryMatrix);
+            inputBipolar->setOutputSignal(bipolarMatrix);
+
+            binaryNet->updateNetwork();
+            bipolarNet->updateNetwork();
+
+            Matrix summBinarySignal = binaryNet->summSignal().value(binary);
+            Matrix summBipolarSignal = bipolarNet->summSignal().value(bipolar);
+
+            for(int i = 0; i != summBinarySignal.rows(); ++i)
+                avgBinarySignal(i, 0) += summBinarySignal(i, 0);
+
+            for(int i = 0; i != summBipolarSignal.rows(); ++i)
+                avgBipolarSignal(i, 0) += summBipolarSignal(i, 0);
+        }
+        signalCount += images.size();
+    }
+
+    for(int i = 0; i != avgBinarySignal.rows(); ++i) {
+        avgBinarySignal(i, 0) /= signalCount;
+        avgBinarySignal(i, 0) = binary->weightingShift().cell(i, 0) - avgBinarySignal(i, 0);
+    }
+
+    for(int i = 0; i != avgBipolarSignal.rows(); ++i) {
+        avgBipolarSignal(i, 0) /= signalCount;
+        avgBipolarSignal(i, 0) = bipolar->weightingShift().cell(i, 0) - avgBipolarSignal(i, 0);
+    }
+
+    binary->setWeightingShift(avgBinarySignal);
+    bipolar->setWeightingShift(avgBipolarSignal);
+
+    bipolarNet->setSaveSummSignal(false);
+    binaryNet->setSaveSummSignal(false);
+
+    updateLinearBipolar();
+
+    ui->result->setText(tr("Веса откорректированы"));
 }
 
 template<class T>
-T MainWindow::dataInHash(QVariantHash *hash, QString field) {
+T MainWindow::dataInHash(QVariantHashPtr hash, QString field) {
     if(!hash->contains(field))           return T();
 
     auto variantData = hash->value(field);
@@ -148,24 +273,30 @@ T MainWindow::dataInHash(QVariantHash *hash, QString field) {
 }
 
 QAbstractItemModelPtr MainWindow::model(int groupIndex) {
-    if(groupIndex > ui->imageGroup->count())            throw std::error_code();
+    if(groupIndex > ui->imageGroup->count())            throw std::invalid_argument("MainWindow::model");
 
     auto variantUserData = ui->imageGroup->itemData(groupIndex);
-    if(!variantUserData.canConvert<QVariantHash*>())    throw std::error_code();
-
-    auto hash = variantUserData.value<QVariantHash*>();
-    return dataInHash<QAbstractItemModelPtr>(hash, Models);
+    if(!variantUserData.canConvert<QVariantHashPtr>())  {
+        QAbstractItemModelPtr result(new QStandardItemModel());
+        result->insertColumn(0);
+        setModel(groupIndex, result);
+        addImage(groupIndex);
+        return result;
+    } else {
+        auto hash = variantUserData.value<QVariantHashPtr>();
+        return dataInHash<QAbstractItemModelPtr>(hash, Models);
+    }
 }
 
 void MainWindow::setModel(int groupIndex, QAbstractItemModelPtr model) {
     if(groupIndex > ui->imageGroup->count())            throw std::error_code();
     auto variantUserData = ui->imageGroup->itemData(groupIndex);
 
-    QVariantHash *hash;
+    QVariantHashPtr hash;
     if(!variantUserData.isValid() || !variantUserData.canConvert<QVariantHash>()) {
-        hash = new QVariantHash();
+        hash.reset(new QVariantHash());
         ui->imageGroup->setItemData(groupIndex, QVariant::fromValue(hash));
-    } else hash = variantUserData.value<QVariantHash*>();
+    } else hash = variantUserData.value<QVariantHashPtr>();
 
     hash->insert(Models, QVariant::fromValue(model));
 }
@@ -203,13 +334,13 @@ void MainWindow::setTable(MatrixPtr matrix) {
 
 MatrixPtr MainWindow::matrix(int groupIndex, int imageIndex) {
     auto model = this->model(groupIndex);
-    if(model == nullptr)                                return nullptr;
+    if(model == nullptr)                                    return nullptr;
 
     auto index = model->index(imageIndex, 0);
     auto variantUserData = model->data(index, Qt::UserRole);
-    if(!variantUserData.canConvert<QVariantHash*>())    return nullptr;
+    if(!variantUserData.canConvert<QVariantHashPtr>())      return nullptr;
 
-    auto hash = variantUserData.value<QVariantHash*>();
+    auto hash = variantUserData.value<QVariantHashPtr>();
     return dataInHash<MatrixPtr>(hash, MatrixData);
 }
 
@@ -220,33 +351,39 @@ void MainWindow::setMatrix(int groupIndex, int imageIndex, MatrixPtr matrix) {
     auto index = model->index(imageIndex, 0);
     auto variantUserData = model->data(index, Qt::UserRole);
 
-    QVariantHash *hash;
-    if(!variantUserData.canConvert<QVariantHash*>())    {
-        hash = new QVariantHash();
+    QVariantHashPtr hash;
+    if(!variantUserData.canConvert<QVariantHashPtr>())    {
+        hash.reset(new QVariantHash());
         model->setData(index, QVariant::fromValue(hash), Qt::UserRole);
-    } else hash = variantUserData.value<QVariantHash*>();
-
-    if(hash->contains(MatrixData)) {
-        delete dataInHash<Matrix*>(hash, MatrixData);
-    }
+    } else hash = variantUserData.value<QVariantHashPtr>();
 
     hash->insert(MatrixData, QVariant::fromValue(matrix));
 }
 
 void MainWindow::addImage(int group) {
     QString name = tr("Новое изображение");
-    if(ui->image->findText(name) != -1) {
-        int index = 2;
-        QString tmpName = name + " " + QString::number(index);
-        while(ui->image->findText(tmpName) != -1) {
-            ++index;
-            tmpName = name + " " + QString::number(index);
-        }
-        name = tmpName;
-    }
     auto model = this->model(group);
+
+    int index = 1;
+    bool hasEquals = true;
+    QString tmpName = name;
+    while(true) {
+        hasEquals = false;
+        for (int i = 0; i != model->rowCount(); ++i) {
+            if(tmpName == model->data(model->index(i, 0)).toString()) {
+                hasEquals = true;
+                ++index;
+                break;
+            }
+        }
+        if(!hasEquals) break;
+        tmpName = name + " " + QString::number(index);
+    }
+    if(index != 1) name = tmpName;
+
     int imageIndex = model->rowCount();
     model->insertRow(imageIndex);
+    model->setData(model->index(imageIndex, 0), name, Qt::DisplayRole);
     setMatrix(group, imageIndex, nullptr);
 }
 
@@ -265,26 +402,6 @@ void MainWindow::showMessage() {
     return;
 }
 
-
-void MainWindow::initImageSet() {
-    connect(ui->addImage, SIGNAL(clicked(bool)), this, SLOT(addImage(bool)));
-    connect(ui->saveImage, SIGNAL(clicked(bool)), this, SLOT(saveImage(bool)));
-    connect(ui->removeImage, SIGNAL(clicked(bool)), this, SLOT(removeImage(bool)));
-    connect(ui->image, SIGNAL(currentIndexChanged(int)), this, SLOT(changeImage(int)));
-}
-
-void MainWindow::initImageGroups() {
-    addGroup(true);
-    addGroup(true);
-//    ui->addGroup->setEnabled(false);        ui->addGroup->setVisible(false);
-//    ui->removeGroup->setEnabled(false);     ui->removeGroup->setVisible(false);
-
-    connect(ui->addGroup, &QAbstractButton::clicked, this, &MainWindow::addGroup);
-    connect(ui->removeGroup, &QAbstractButton::clicked, this, &MainWindow::removeGroup);
-    connect(ui->imageGroup, SIGNAL(currentIndexChanged(int)), this, SLOT(changeImageSet(int)));
-    ui->imageGroup->setCurrentIndex(0);
-}
-
 void MainWindow::initTable() {
     ui->table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
     ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
@@ -294,6 +411,13 @@ void MainWindow::initTable() {
         }
     }
     connect(ui->clear, &QAbstractButton::clicked, this, &MainWindow::clearTableData);
+}
+
+void MainWindow::initImageSet() {
+    connect(ui->addImage, SIGNAL(clicked(bool)), this, SLOT(addImage(bool)));
+    connect(ui->saveImage, SIGNAL(clicked(bool)), this, SLOT(saveImage(bool)));
+    connect(ui->removeImage, SIGNAL(clicked(bool)), this, SLOT(removeImage(bool)));
+    connect(ui->image, SIGNAL(currentIndexChanged(int)), this, SLOT(changeImage(int)));
 }
 
 void MainWindow::initNeuralWebs() {
@@ -310,20 +434,77 @@ void MainWindow::initNeuralWebs() {
 
     inputBinary->addOutput(binary);
 
-    binaryNet = new DebugNeuralNetwork(true, false);
-    bipolarNet = new DebugNeuralNetwork(true, false);
+    binaryNet = new DebugNeuralNetwork();
+    bipolarNet = new DebugNeuralNetwork();
+    linearBipolarNet = new SimpleNeuralNetwork();
 
     binaryNet->addCluster(binary);
     binaryNet->addCluster(inputBinary);
 
-    bipolarNet->addCluster(linearBipolar);
     bipolarNet->addCluster(bipolar);
     bipolarNet->addCluster(inputBipolar);
 
+    linearBipolarNet->addCluster(inputBipolar);
+    linearBipolarNet->addCluster(linearBipolar);
+
     binaryNet->updateClusterSequence();
     bipolarNet->updateClusterSequence();
+    linearBipolarNet->updateClusterSequence();
 
     connect(ui->info, &QPushButton::clicked, this, &MainWindow::printfInfo);
+    connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
+    connect(ui->centring, &QPushButton::clicked, this, &MainWindow::centring);
+    connect(ui->recognizeImage, &QPushButton::clicked, this, &MainWindow::recognize);
+}
+
+void MainWindow::initImageGroups() {
+    addGroup();
+    addGroup();
+
+    connect(ui->addGroup, &QAbstractButton::clicked, [this] (bool) { showMessage(); });
+    connect(ui->removeGroup, &QAbstractButton::clicked, this, &MainWindow::removeGroup);
+    connect(ui->imageGroup, SIGNAL(currentIndexChanged(int)), this, SLOT(changeImageSet(int)));
+
+    ui->imageGroup->setCurrentIndex(1);
+    ui->imageGroup->setCurrentIndex(0);
+}
+
+void MainWindow::updateLinearBipolar() {
+    SignalConverterPtr bipolarConverter(new BipolarConverter);
+
+    linearBipolar->setWeightingShift(bipolar->weightingShift());
+    linearBipolar->setWeightingFactors(bipolar->weightingFactors());
+
+    int cntPositiveSignals = 0, cntNegativeSignals = 0;
+    double avgPositiveSignal = 0, avgNegativeSignal = 0;
+    bipolarNet->setSaveSummSignal(true);
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        QVector<MatrixPtr> images = this->images(i);
+        for(auto matrixptr : images) {
+            Matrix matrix = *matrixptr;
+            bipolarConverter->convertToSignal(matrix);
+            inputBipolar->setOutputSignal(matrix);
+            bipolarNet->updateNetwork();
+            double value = bipolarNet->summSignal().value(bipolar).cell(0, 0);
+            if(value < 0) {
+                avgNegativeSignal += value;
+                ++cntNegativeSignals;
+            }
+            else {
+                avgPositiveSignal += value;
+                ++cntPositiveSignals;
+            }
+        }
+    }
+    bipolarNet->setSaveSummSignal(false);
+
+    avgPositiveSignal /= cntPositiveSignals;
+    avgNegativeSignal /= cntNegativeSignals;
+
+    double diff = avgPositiveSignal - avgNegativeSignal;
+
+    linearBipolar->q1(1 * diff / 3  + avgNegativeSignal);
+    linearBipolar->q2(2 * diff / 3  + avgNegativeSignal);
 }
 
 void MainWindow::deleteUnusedImages(int imageGroup) {
@@ -402,19 +583,7 @@ void MainWindow::printfInfo(bool /*ignored*/) {
     out << "k = " << QString::number(2 / (linearBipolar->q2() - linearBipolar->q1())) << "\n";
     functor(linearBipolar);
 
-    Info info(this);
-    info.doc()->setPlainText(str);
-    info.exec();
-}
-
-QAbstractItemModelPtr MainWindow::modelForNewGroup() const {
-    QStandardItemModel *model = new QStandardItemModel();
-    model->insertRows(0, 1);
-    model->insertColumns(0, 1);
-    auto index = model->index(0, 0);
-    model->setData(index, tr("Новое изображение"));
-    QVariantHash hash;
-    hash[MatrixData] = QVariant::fromValue(QVector<bool>());
-    model->setData(index, hash, Qt::UserRole);
-    return QAbstractItemModelPtr(model);
+    Info *info = new Info(this);
+    info->doc()->setPlainText(str);
+    info->show();
 }

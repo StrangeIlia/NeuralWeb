@@ -42,7 +42,10 @@ public:
 
     void removeSet();
     void removeInvalidSet();
-    void training(BaseValueType eps = std::numeric_limits<BaseValueType>::epsilon(), int maxIteration = -1);
+    void training(
+            BaseValueType learningFactor = 1,
+            BaseValueType eps = std::numeric_limits<BaseValueType>::epsilon(),
+            int maxIteration = -1);
 };
 
 #endif // NEURALNETWORKTRAINER_H

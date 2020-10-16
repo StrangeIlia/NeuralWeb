@@ -16,6 +16,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    neural_networks/SimpleNeuralNetwork.cpp \
+    neural_networks/AbstractClusterOfNeurons.cpp \
+    neural_networks/AbstractSignalConverter.cpp \
+    neural_networks/DebugNeuralNetwork.cpp \
+    neural_networks/NeuralNetworkTrainer.cpp \
     Binary.cpp \
     BinaryConverter.cpp \
     Bipolar.cpp \
@@ -24,14 +29,15 @@ SOURCES += \
     LinerBipolar.cpp \
     SwitchButton.cpp \
     main.cpp \
-    MainWindow.cpp \
-    neural_networks/AbstractClusterOfNeurons.cpp \
-    neural_networks/AbstractSignalConverter.cpp \
-    neural_networks/DebugNeuralNetwork.cpp \
-    neural_networks/NeuralNetworkTrainer.cpp \
-    neural_networks/SimpleNeuralNetwork.cpp
+    MainWindow.cpp
 
 HEADERS += \
+    math/matrix/MatrixOnRow.hpp \
+    neural_networks/AbstractClusterOfNeurons.h \
+    neural_networks/AbstractSignalConverter.h \
+    neural_networks/DebugNeuralNetwork.h \
+    neural_networks/NeuralNetworkTrainer.h \
+    neural_networks/SimpleNeuralNetwork.h \
     Binary.h \
     BinaryConverter.h \
     Bipolar.h \
@@ -39,13 +45,7 @@ HEADERS += \
     Info.h \
     LinearBipolar.h \
     MainWindow.h \
-    SwitchButton.h \
-    math/matrix/MatrixOnRow.hpp \
-    neural_networks/AbstractClusterOfNeurons.h \
-    neural_networks/AbstractSignalConverter.h \
-    neural_networks/DebugNeuralNetwork.h \
-    neural_networks/NeuralNetworkTrainer.h \
-    neural_networks/SimpleNeuralNetwork.h
+    SwitchButton.h
 
 FORMS += \
     Info.ui \

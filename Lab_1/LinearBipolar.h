@@ -13,11 +13,11 @@ public:
 
     ~LinearBipolar();
 
-    inline BaseValueType q1() const;
-    inline void q1(BaseValueType value);
+    BaseValueType q1() const;
+    void q1(BaseValueType value);
 
-    inline BaseValueType q2() const;
-    inline void q2(BaseValueType value);
+    BaseValueType q2() const;
+    void q2(BaseValueType value);
 
 protected:
     BaseValueType correct(BaseValueType input, BaseValueType ouput) override;

@@ -7,6 +7,7 @@ BipolarConverter::BipolarConverter(BaseValueType center) : _center(center) {
 void BipolarConverter::convertToSignal(Matrix& matrix)  {
     auto &vector = matrix.getBaseRow();
     for(auto &value : vector) value = value > _center ? 1 : -1;
+    matrix.setSize(matrix.rows() * matrix.columns(), 1);
 }
 
 void BipolarConverter::convertToData(Matrix& matrix) {

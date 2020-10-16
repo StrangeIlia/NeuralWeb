@@ -34,11 +34,11 @@ public:
     inline void removeColumns(IndexType first, IndexType last);
 
     /// Изменяет число строк, сохранение данных не гарантировано
-    inline void setRows(IndexType _rows);
+    inline void setRows(IndexType rows);
     /// Изменяет число столбцов, сохранение данных не гарантировано
-    inline void setColumns(IndexType _columns);
+    inline void setColumns(IndexType columns);
     /// Изменяет число строк и столбцов, сохранение данных не гарантировано
-    inline void setSize(IndexType _rows, IndexType _columns);
+    inline void setSize(IndexType rows, IndexType columns);
 
     inline IndexType rows() const;
     inline IndexType columns() const;
@@ -72,8 +72,8 @@ MatrixOnRow<BaseType, IndexType>::MatrixOnRow(const MatrixOnRow& othen) :
 
 template<class BaseType, class IndexType>
 MatrixOnRow<BaseType, IndexType>::MatrixOnRow(IndexType rows, IndexType columns) {
-    if(_rows < 0) throw std::invalid_argument("MatrixOnRow::setSize: The number of rows cannot be negative");
-    if(_columns < 0) throw std::invalid_argument("MatrixOnRow::setSize: The number of columns cannot be negative");
+    if(rows < 0) throw std::invalid_argument("MatrixOnRow::setSize: The number of rows cannot be negative");
+    if(columns < 0) throw std::invalid_argument("MatrixOnRow::setSize: The number of columns cannot be negative");
     _rows = rows;
     _columns = columns;
     _matrix.resize(_rows * _columns);
@@ -92,6 +92,7 @@ MatrixOnRow<BaseType, IndexType>& MatrixOnRow<BaseType, IndexType>::operator = (
     _rows = othen._rows;
     _columns = othen._columns;
     _matrix = othen._matrix;
+    return *this;
 }
 
 template<class BaseType, class IndexType>

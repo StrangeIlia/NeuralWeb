@@ -41,7 +41,7 @@ public:
 
     /// Производит обучение сети
     /// В обучении участвуют только нейроны в скрытом и выходном слое
-    virtual void training();
+    virtual void training(BaseValueType learningFactor = 1.0);
 
     /// Очищает нейронную сеть
     void clear();

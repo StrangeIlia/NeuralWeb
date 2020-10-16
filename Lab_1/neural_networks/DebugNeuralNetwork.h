@@ -20,7 +20,7 @@ public:
     DebugNeuralNetwork(bool saveSummSignal = true, bool saveWeigth = true);
 
     void updateNetwork() override;
-    void training() override;
+    void training(BaseValueType learningFactor = 1) override;
 
     QHash<Cluster, Weights> lastWeights() const;
     QHash<Cluster, Matrix> summSignal() const;

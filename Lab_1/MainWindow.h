@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QHash>
+#include <QDebug>
 #include <QVector>
 #include <QTextStream>
 #include <QMainWindow>
@@ -28,6 +29,7 @@ QT_END_NAMESPACE
 typedef QSharedPointer<Matrix>                  MatrixPtr;
 typedef QSharedPointer<QVariantHash>            QVariantHashPtr;
 typedef QSharedPointer<QAbstractItemModel>      QAbstractItemModelPtr;
+typedef QSharedPointer<AbstractSignalConverter> SignalConverterPtr;
 
 Q_DECLARE_METATYPE(MatrixPtr);
 Q_DECLARE_METATYPE(QVariantHashPtr);
@@ -53,6 +55,7 @@ private slots:
     void clearTableData(bool ignored = false);
     void training(bool ignored = false);
     void recognize(bool ignored = false);
+    void centring(bool ignored = false);
 
 private:
     Ui::MainWindow *ui;
@@ -69,9 +72,10 @@ private:
     /// Это нейронные сети
     DebugNeuralNetwork *binaryNet;
     DebugNeuralNetwork *bipolarNet;
+    SimpleNeuralNetwork *linearBipolarNet;
 
     template<class T>
-    T dataInHash(QVariantHash *hash, QString field);
+    T dataInHash(QVariantHashPtr hash, QString field);
 
     QAbstractItemModelPtr model(int groupIndex);
     void setModel(int groupIndex, QAbstractItemModelPtr model);
@@ -87,17 +91,16 @@ private:
 
     void showMessage();
 
-    void initImageSet();
-    void initImageGroups();
     void initTable();
+    void initImageSet();
     void initNeuralWebs();
+    void initImageGroups();
+    void updateLinearBipolar();
     void deleteUnusedImages(int imageGroup);
 
     QVector<MatrixPtr> images(int groupIndex);
 
     void printfInfo(bool ignored);
-
-    QAbstractItemModelPtr modelForNewGroup() const;
 
     static QString Models;
     static QString MatrixData;

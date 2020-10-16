@@ -6,7 +6,7 @@ BaseValueType Bipolar::activate(BaseValueType value) {
 }
 
 BaseValueType Bipolar::correct(BaseValueType input, BaseValueType ouput) {
-    return input * (2 * ouput - 1);
+    return input * ouput;
 }
 
 Bipolar::Bipolar(int neuronCount, BaseValueType center) : AbstractClusterOfNeurons(neuronCount),  _center(center) {

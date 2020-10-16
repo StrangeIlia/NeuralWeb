@@ -146,12 +146,12 @@ void SimpleNeuralNetwork::updateNetwork() {
 }
 
 
-void SimpleNeuralNetwork::training() {
+void SimpleNeuralNetwork::training(BaseValueType learningFactor) {
     if(clusterSequence.empty()) updateClusterSequence();
     auto reverseIter = clusterSequence.rbegin();
     auto reverseEnd = clusterSequence.rend();
     while (reverseIter != reverseEnd) {
-        (*reverseIter)->correction();
+        (*reverseIter)->correction(learningFactor);
         ++reverseIter;
     }
 }

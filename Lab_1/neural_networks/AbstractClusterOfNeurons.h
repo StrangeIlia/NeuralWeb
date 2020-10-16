@@ -34,29 +34,29 @@ protected:
     virtual BaseValueType correct(BaseValueType input, BaseValueType ouput) = 0;
 
 public:
-    inline const Matrix& outputSignal() const;
-    inline void setOutputSignal(const Matrix &matrix);
+    const Matrix& outputSignal() const;
+    void setOutputSignal(const Matrix &matrix);
 
-    inline const Matrix& weightingShift() const;
-    inline void setWeightingShift(const Matrix &matrix);
+    const Matrix& weightingShift() const;
+    void setWeightingShift(const Matrix &matrix);
 
-    inline const Matrix& weightingFactors() const;
-    inline void setWeightingFactors(const Matrix &matrix);
+    const Matrix& weightingFactors() const;
+    void setWeightingFactors(const Matrix &matrix);
 
     /// Возвращает список входных кластеров
-    inline ClusterList inputClusters() const;
+    ClusterList inputClusters() const;
 
     /// Возвращает список выходных кластеров
-    inline ClusterList outputClusters() const;
+    ClusterList outputClusters() const;
 
     /// Число нейронов в кластере
-    inline int neuronsCount() const;
+    int neuronsCount() const;
 
     /// Число одновременно обрабатываемых входных сигналов
-    inline int threadsCount() const;
+    int threadsCount() const;
 
     /// Возвращает число входных сигналов
-    inline int inputSignalCount() const;
+    int inputSignalCount() const;
 
     /// Устанавливает число одновременно
     /// обрабатываемых входных сигналов
@@ -74,16 +74,16 @@ public:
     void setNueronsCount(int count);
 
     /// Добавить входной кластер
-    inline bool addInput(AbstractClusterOfNeurons *cluster);
+    bool addInput(AbstractClusterOfNeurons *cluster);
 
     /// Добавить выходной кластер
-    inline bool addOutput(AbstractClusterOfNeurons *cluster);
+    bool addOutput(AbstractClusterOfNeurons *cluster);
 
     /// Удалить входной кластер
-    inline bool removeInput(AbstractClusterOfNeurons *cluster);
+    bool removeInput(AbstractClusterOfNeurons *cluster);
 
     /// Удалить выходной кластер
-    inline bool removeOutput(AbstractClusterOfNeurons *cluster);
+    bool removeOutput(AbstractClusterOfNeurons *cluster);
 
     /// Создать связь между кластерами
     static bool connect(AbstractClusterOfNeurons *in, AbstractClusterOfNeurons *out);
@@ -95,10 +95,10 @@ public:
     void clearLinks();
 
     /// Заполняет выходные сигналы значением по умолчанию типа BaseValueType
-    inline void clearOutputSignal(BaseValueType value = BaseValueType());
+    void clearOutputSignal(BaseValueType value = BaseValueType());
 
     /// Заполняет выходные сигналы сигналом сдвига
-    inline void initOutputSignal();
+    void initOutputSignal();
 
     /// Расчитывает входной сигнал
     virtual void summation();
@@ -107,7 +107,7 @@ public:
     virtual bool activation();
 
     /// Функция корректировки весовых коэффициентов
-    virtual void correction();
+    virtual void correction(BaseValueType learningFactor = 1.0);
 
 protected:
     virtual BaseValueType getInitValue() const;

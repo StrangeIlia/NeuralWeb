@@ -14,7 +14,7 @@ public:
     Binary(int neuronCount, BaseValueType center = 0);
     ~Binary();
 
-    inline BaseValueType center() const;
-    inline void setCenter(BaseValueType center);
+    BaseValueType center() const;
+    void setCenter(BaseValueType center);
 };
 #endif // BINARY_HPP

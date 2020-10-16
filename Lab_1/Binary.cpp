@@ -5,7 +5,7 @@ BaseValueType Binary::activate(BaseValueType value) {
 }
 
 BaseValueType Binary::correct(BaseValueType input, BaseValueType ouput) {
-    return input * ouput;
+    return input * (2 * ouput - 1);
 }
 
 Binary::Binary(int neuronCount, BaseValueType center) : AbstractClusterOfNeurons(neuronCount),  _center(center) {
