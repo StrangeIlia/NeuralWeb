@@ -35,7 +35,7 @@ void DebugNeuralNetwork::training(BaseValueType learningFactor) {
             ++reverseIter;
         }
     }
-    this->SimpleNeuralNetwork::training(learningFactor);
+    else this->SimpleNeuralNetwork::training(learningFactor);
 }
 
 QHash<Cluster, DebugNeuralNetwork::Weights> DebugNeuralNetwork::lastWeights() const {

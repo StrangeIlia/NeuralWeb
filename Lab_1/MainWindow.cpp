@@ -119,6 +119,19 @@ void MainWindow::training(bool /*ignored*/) {
     SignalConverterPtr bipolarConverter(new BipolarConverter);
 
     for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        NeuralNetworkTrainer::Signal binaryOutputSignal;
+        NeuralNetworkTrainer::Signal bipolarOutputSignal;
+
+        Matrix out(1, 1);
+        out(0, 0) = i;
+        Matrix binaryMatrix = out;
+        Matrix bipolarMatrix = out;
+        binaryConverter->convertToSignal(binaryMatrix);
+        bipolarConverter->convertToSignal(bipolarMatrix);
+
+        binaryOutputSignal[binary] = binaryMatrix;
+        bipolarOutputSignal[bipolar] = bipolarMatrix;
+
         NeuralNetworkTrainer::Signal binaryInputSignal;
         NeuralNetworkTrainer::Signal bipolarInputSignal;
         QVector<MatrixPtr> images = this->images(i);
@@ -133,30 +146,17 @@ void MainWindow::training(bool /*ignored*/) {
             bipolarConverter->convertToSignal(bipolarMatrix);
             binaryInputSignal[inputBinary] = binaryMatrix;
             bipolarInputSignal[inputBipolar] = bipolarMatrix;
+
+            binaryTrainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
+                                             binaryInputSignal,
+                                             binaryOutputSignal,
+                                         });
+
+            bipolarTrainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
+                                             bipolarInputSignal,
+                                             bipolarOutputSignal,
+                                         });
         }
-
-        NeuralNetworkTrainer::Signal binaryOutputSignal;
-        NeuralNetworkTrainer::Signal bipolarOutputSignal;
-
-        Matrix out(1, 1);
-        out(0, 0) = i;
-        Matrix binaryMatrix = out;
-        Matrix bipolarMatrix = out;
-        binaryConverter->convertToSignal(binaryMatrix);
-        bipolarConverter->convertToSignal(bipolarMatrix);
-
-        binaryOutputSignal[binary] = binaryMatrix;
-        bipolarOutputSignal[bipolar] = bipolarMatrix;
-
-        binaryTrainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
-                                         binaryInputSignal,
-                                         binaryOutputSignal,
-                                     });
-
-        bipolarTrainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
-                                         bipolarInputSignal,
-                                         bipolarOutputSignal,
-                                     });
     }
 
     double learningFactor = ui->learningFactor->value();

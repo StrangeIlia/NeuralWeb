@@ -4,6 +4,8 @@
 #include <limits>
 
 #include <QHash>
+#include <QDebug>
+#include <QString>
 
 #include "SimpleNeuralNetwork.h"
 
