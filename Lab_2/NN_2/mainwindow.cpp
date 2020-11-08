@@ -86,7 +86,7 @@ void MainWindow::clearTableData(bool /*ignored*/) {
 
 void MainWindow::training(bool /*ignored*/) {
     deleteUnusedImages(ui->imageGroup->currentIndex());
-    EnchancedNeuralNetworkTrainer binaryTrainer(binaryNet, true);
+    NeuralNetworkTrainer binaryTrainer(binaryNet, true);
     SignalConverterPtr binaryConverter(new BinaryConverter);
 
     binary->initWeight();
@@ -127,9 +127,18 @@ void MainWindow::training(bool /*ignored*/) {
 
     double learningFactor = ui->learningFactor->value();
 
-    binaryTrainer.training(learningFactor);
+    bool ok = true;
+    int reqIter = 1;
+    int maxIteration = 1000;
+    for(int i = 0; i != maxIteration; ++i) {
+        if(i == maxIteration - 1) ok = false;
+        int iterCount =
+            binaryTrainer.training(learningFactor, std::numeric_limits<BaseValueType>::epsilon(), reqIter);
+        if(iterCount != reqIter) break;
+        //__centring();
+    }
 
-    sendMessage(tr("Нейронные сети обучены"));
+    sendMessage(tr("Нейронные сети обучены (") + (ok ? "true" : "false")  + ")" );
 }
 
 void MainWindow::recognize(bool /*ignored*/) {
@@ -164,27 +173,63 @@ void MainWindow::recognize(bool /*ignored*/) {
                 message += "\"<br>";
             }
         }
-        message += "Вероятнее всего данное изображение относится к группе \"";
-        int bestGroup = closestGroup(matrix);
-        message += ui->imageGroup->itemData(bestGroup, Qt::DisplayRole).toString();
-        message += "\"<br>";
     } else {
         message = tr("Нейронная сеть считает, что это изображение относится к группе:");
         message += "\"" + ui->imageGroup->itemText(groups.front()) + "\"<br>";
     }
+    message += "Вероятнее всего данное изображение относится к группе \"";
+    int bestGroup = closestGroup(matrix);
+    message += ui->imageGroup->itemData(bestGroup, Qt::DisplayRole).toString();
+    message += "\"<br>";
     sendMessage(message);
 }
 
 void MainWindow::centring(bool /*ignored*/) {
+    __centring();
+    sendMessage(tr("Веса откорректированы"));
+}
+
+void MainWindow::__centring() {
     binaryNet->setSaveSummSignal(true);
 
+//    SignalConverterPtr binaryConverter(new BinaryConverter);
+
+//    int signalCount = 0;
+//    Matrix avgBinarySignal(ui->imageGroup->count(), 1);
+
+//    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+//        auto images = this->images(i);
+//        for(auto matrixptr : images) {
+//            Matrix binaryMatrix = *matrixptr;
+//            binaryConverter->convertToSignal(binaryMatrix);
+//            inputBinary->setOutputSignal(binaryMatrix);
+
+//            binaryNet->updateNetwork();
+
+//            Matrix summBinarySignal = binaryNet->summSignal().value(binary);
+
+//            for(int i = 0; i != summBinarySignal.rows(); ++i)
+//                avgBinarySignal(i, 0) += summBinarySignal(i, 0);
+//        }
+//        signalCount += images.size();
+//    }
+
+//    for(int i = 0; i != avgBinarySignal.rows(); ++i) {
+//        avgBinarySignal(i, 0) /= signalCount;
+//        avgBinarySignal(i, 0) = binary->weightingShift().cell(i, 0) - avgBinarySignal(i, 0);
+//    }
+
+
+//    binary->setWeightingShift(avgBinarySignal);
+
+    QList<int> countImageInGroups;
     SignalConverterPtr binaryConverter(new BinaryConverter);
+    Matrix positive(binary->neuronsCount(), 1);
+    Matrix negative(binary->neuronsCount(), 1);
 
-    int signalCount = 0;
-    Matrix avgBinarySignal(ui->imageGroup->count(), 1);
-
-    for(int i = 0; i != ui->imageGroup->count(); ++i) {
-        auto images = this->images(i);
+    for(int k = 0; k != ui->imageGroup->count(); ++k) {
+        auto images = this->images(k);
+        countImageInGroups.append(images.size());
         for(auto matrixptr : images) {
             Matrix binaryMatrix = *matrixptr;
             binaryConverter->convertToSignal(binaryMatrix);
@@ -193,23 +238,100 @@ void MainWindow::centring(bool /*ignored*/) {
             binaryNet->updateNetwork();
 
             Matrix summBinarySignal = binaryNet->summSignal().value(binary);
-
-            for(int i = 0; i != summBinarySignal.rows(); ++i)
-                avgBinarySignal(i, 0) += summBinarySignal(i, 0);
+            for(int i = 0; i != summBinarySignal.rows(); ++i) {
+                if(i == k) {
+                    positive(i, 0) += summBinarySignal(i, 0);
+                } else {
+                    negative(i, 0) += summBinarySignal(i, 0);
+                }
+            }
         }
-        signalCount += images.size();
     }
 
-    for(int i = 0; i != avgBinarySignal.rows(); ++i) {
-        avgBinarySignal(i, 0) /= signalCount;
-        avgBinarySignal(i, 0) = binary->weightingShift().cell(i, 0) - avgBinarySignal(i, 0);
+    Matrix shift(binary->neuronsCount(), 1);
+    Matrix weight = binary->weightingFactors();
+    Matrix weightShift = binary->weightingShift();
+    /// Попытка золотой середины
+    for(int i = 0; i != countImageInGroups.size(); ++i) {
+        int positiveCount = countImageInGroups[i];
+        int negativeCount = 0;
+        for(int j = 0; j != countImageInGroups.size(); ++j) {
+            if(j != i) negativeCount += countImageInGroups[j];
+        }
+        positive(i, 0) /= positiveCount;
+        negative(i, 0) /= negativeCount;
+        shift(i, 0) = (positive(i, 0) + negative(i, 0)) / 2;
+    }
+    /// Добавим пограничную зону
+    for(int k = 0; k != ui->imageGroup->count(); ++k) {
+        //bool hasMinChanged = false;
+        //bool hasMaxChanged = false;
+        //bool allMistake = true;
+        double minShift = std::numeric_limits<double>::max();
+        double maxShift = -std::numeric_limits<double>::max();
+
+        auto images = this->images(k);
+        for(auto matrixptr : images) {
+            Matrix binaryMatrix = *matrixptr;
+            binaryConverter->convertToSignal(binaryMatrix);
+            inputBinary->setOutputSignal(binaryMatrix);
+
+            binaryNet->updateNetwork();
+
+            Matrix summBinarySignal = binaryNet->summSignal().value(binary);
+            for(int i = 0; i != summBinarySignal.rows(); ++i) {
+                if(i == k) {
+                    //if(summBinarySignal(i, 0) > 0) allMistake = false;
+                    minShift = std::min(minShift, summBinarySignal(i, 0));
+                    //hasMinChanged = true;
+                } else {
+                    maxShift = std::max(maxShift, summBinarySignal(i, 0));
+                    //hasMaxChanged = true;
+                }
+            }
+        }
+
+        /// Доминирование подтверждения (Не оказала должного результата)
+//        if(minShift < 0) {
+//            if(minShift < shift(k, 0)) {
+//                shift(k, 0) = minShift * 1.00001;
+//                continue;
+//            }
+//        }
+        /// Доминирование отвержения (так же не принесо результата)
+//        if(maxShift > 0) {
+//            if(maxShift > shift(k, 0)) {
+//                shift(k, 0) = maxShift * 1.00001;
+//                continue;
+//            }
+//        }
+
+        /// Отсутствие доминирования
+//        if(maxShift > minShift) {
+             /// Доминирование инверсии
+//             if(allMistake) {
+//                 shift(k, 0) = -2 * weightShift(k, 0);
+//                 for(int j = 0; j != weight.columns(); ++j) {
+//                     weight(k, j) = -weight(k, j);
+//                 }
+//                 continue;
+//             }
+//             shift(k, 0) = 0;
+//        }
+//        else {
+//            if(shift(k, 0) < maxShift || minShift < shift(k, 0)) {
+//                shift(k, 0) = (maxShift + minShift) / 2;
+//            }
+//        }
     }
 
 
-    binary->setWeightingShift(avgBinarySignal);
+    for(int i = 0; i != weightShift.rows(); ++i) {
+        weightShift(i, 0) -= shift(i, 0);
+    }
+    binary->setWeightingShift(weightShift);
 
     binaryNet->setSaveSummSignal(false);
-    sendMessage(tr("Веса откорректированы"));
 }
 
 void MainWindow::sendMessage(QString html) {

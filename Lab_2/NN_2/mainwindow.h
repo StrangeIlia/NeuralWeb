@@ -70,6 +70,8 @@ private:
     /// Это нейронная сети
     DebugNeuralNetwork *binaryNet;
 
+    void __centring();
+
     void sendMessage(QString html);
     /// Ищет наиболее близкую группу к данному изображению
     int closestGroup(MatrixPtr matrix);

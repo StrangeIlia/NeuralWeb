@@ -44,7 +44,7 @@ public:
 
     void removeSet();
     void removeInvalidSet();
-    virtual void training(
+    virtual int training(
             BaseValueType learningFactor = 1,
             BaseValueType eps = std::numeric_limits<BaseValueType>::epsilon(),
             int maxIteration = -1);

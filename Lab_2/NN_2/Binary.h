@@ -6,7 +6,7 @@
 class Binary : public AbstractClusterOfNeurons {
     BaseValueType _center = 0;
 
-protected:
+public:
     BaseValueType activate(BaseValueType value) override;
     BaseValueType correct(BaseValueType input, BaseValueType ouput) override;
 

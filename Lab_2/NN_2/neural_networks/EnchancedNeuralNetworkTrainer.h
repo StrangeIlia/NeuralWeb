@@ -9,7 +9,7 @@ class EnchancedNeuralNetworkTrainer : public NeuralNetworkTrainer
 public:
     EnchancedNeuralNetworkTrainer(SimpleNeuralNetwork *network, bool memoryControl = false);
 
-    void training(
+    int training(
             BaseValueType learningFactor = 1,
             BaseValueType eps = std::numeric_limits<BaseValueType>::epsilon(),
             int maxIteration = -1) override;

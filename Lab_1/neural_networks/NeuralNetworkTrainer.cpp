@@ -63,7 +63,7 @@ void NeuralNetworkTrainer::removeInvalidSet() {
     for(auto value : set) addTrainingSet(value);
 }
 
-void NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType eps, int maxIteration) {
+int NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType eps, int maxIteration) {
     int iterationNumber = 0;
     while(iterationNumber != maxIteration) {
         QList<TrainingSet*> mistakes;
@@ -123,4 +123,6 @@ void NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType 
 
         ++iterationNumber;
     }
+
+    return iterationNumber;
 }

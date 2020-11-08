@@ -27,7 +27,7 @@ public:
 
     virtual ~AbstractClusterOfNeurons();
 
-protected:
+public:
     /// Функия активации
     virtual BaseValueType activate(BaseValueType) = 0;
     /// Функция корректирования весых коэффициентов
