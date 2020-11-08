@@ -17,7 +17,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     Console.cpp \
-    neural_networks/EnchancedNeuralNetworkTrainer.cpp \
     neural_networks/SimpleNeuralNetwork.cpp \
     neural_networks/AbstractClusterOfNeurons.cpp \
     neural_networks/AbstractSignalConverter.cpp \
@@ -35,7 +34,6 @@ HEADERS += \
     neural_networks/AbstractClusterOfNeurons.h \
     neural_networks/AbstractSignalConverter.h \
     neural_networks/DebugNeuralNetwork.h \
-    neural_networks/EnchancedNeuralNetworkTrainer.h \
     neural_networks/NeuralNetworkTrainer.h \
     neural_networks/SimpleNeuralNetwork.h \
     Binary.h \

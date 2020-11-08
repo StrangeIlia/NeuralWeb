@@ -17,7 +17,7 @@
 #include "SwitchButton.h"
 #include "BinaryConverter.h"
 #include "neural_networks/DebugNeuralNetwork.h"
-#include "neural_networks/EnchancedNeuralNetworkTrainer.h"
+#include "neural_networks/NeuralNetworkTrainer.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
