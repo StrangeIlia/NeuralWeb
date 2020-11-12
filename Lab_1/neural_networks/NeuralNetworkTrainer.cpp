@@ -106,19 +106,6 @@ int NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType e
                 iter.key()->setOutputSignal(requiredMatrix);
             }
             _networkLearn->training(learningFactor);
-
-//            for(Cluster cluster : _networkLearn->outputClusters()) {
-//                QString row;
-//                auto matrix = cluster->weightingFactors();
-//                for(int i = 0; i != matrix.rows(); ++i) {
-//                    row = "";
-//                    for(int j = 0; j != matrix.columns(); ++j) {
-//                        row += QString::number(matrix(i, j)) + "   ";
-//                    }
-//                    qDebug() << row;
-//                }
-//                qDebug() << "";
-//            }
         }
 
         ++iterationNumber;

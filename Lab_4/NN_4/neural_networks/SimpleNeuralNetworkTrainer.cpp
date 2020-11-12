@@ -1,12 +1,12 @@
-#include "NeuralNetworkTrainer.h"
+#include "SimpleNeuralNetworkTrainer.h"
 
-NeuralNetworkTrainer::NeuralNetworkTrainer(SimpleNeuralNetwork *network, bool memoryControl)
+SimpleNeuralNetworkTrainer::SimpleNeuralNetworkTrainer(SimpleNeuralNetwork *network, bool memoryControl)
     : _networkLearn(network)
     , _memoryControl(memoryControl) {
 
 }
 
-NeuralNetworkTrainer::~NeuralNetworkTrainer() {
+SimpleNeuralNetworkTrainer::~SimpleNeuralNetworkTrainer() {
     if(_memoryControl) {
         for(auto set : _learningSet) {
             delete set;
@@ -15,7 +15,7 @@ NeuralNetworkTrainer::~NeuralNetworkTrainer() {
     _learningSet.clear();
 }
 
-void NeuralNetworkTrainer::addTrainingSet(TrainingSet *set) {
+void SimpleNeuralNetworkTrainer::addTrainingSet(TrainingSet *set) {
     for(auto iter = set->input.begin(); iter != set->input.end(); ++iter) {
         if(!_networkLearn->inputClusters().contains(iter.key()))
             return;
@@ -28,42 +28,42 @@ void NeuralNetworkTrainer::addTrainingSet(TrainingSet *set) {
         _learningSet.append(set);
 }
 
-void NeuralNetworkTrainer::removeTrainingSet(TrainingSet *set) {
+void SimpleNeuralNetworkTrainer::removeTrainingSet(TrainingSet *set) {
    _learningSet.removeOne(set);
 }
 
-bool NeuralNetworkTrainer::memoryControl() const {
+bool SimpleNeuralNetworkTrainer::memoryControl() const {
     return _memoryControl;
 }
 
-void NeuralNetworkTrainer::setMemoryControl(bool value) {
+void SimpleNeuralNetworkTrainer::setMemoryControl(bool value) {
     _memoryControl = value;
 }
 
-QList<NeuralNetworkTrainer::TrainingSet*> NeuralNetworkTrainer::learningSet() const {
+QList<SimpleNeuralNetworkTrainer::TrainingSet*> SimpleNeuralNetworkTrainer::learningSet() const {
     return _learningSet;
 }
 
-SimpleNeuralNetwork *NeuralNetworkTrainer::networkLearn() const {
+SimpleNeuralNetwork *SimpleNeuralNetworkTrainer::networkLearn() const {
     return _networkLearn;
 }
 
-void NeuralNetworkTrainer::setNetworkLearn(SimpleNeuralNetwork *network) {
+void SimpleNeuralNetworkTrainer::setNetworkLearn(SimpleNeuralNetwork *network) {
     _networkLearn = network;
     _learningSet.clear();
 }
 
-void NeuralNetworkTrainer::removeSet() {
+void SimpleNeuralNetworkTrainer::removeSet() {
     _learningSet.clear();
 }
 
-void NeuralNetworkTrainer::removeInvalidSet() {
+void SimpleNeuralNetworkTrainer::removeInvalidSet() {
     auto set = _learningSet;
     _learningSet.clear();
     for(auto value : set) addTrainingSet(value);
 }
 
-int NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType eps, int maxIteration) {
+int SimpleNeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType eps, int maxIteration) {
     int iterationNumber = 0;
     while(iterationNumber != maxIteration) {
         QList<TrainingSet*> mistakes;
@@ -106,19 +106,6 @@ int NeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType e
                 iter.key()->setOutputSignal(requiredMatrix);
             }
             _networkLearn->training(learningFactor);
-
-//            for(Cluster cluster : _networkLearn->outputClusters()) {
-//                QString row;
-//                auto matrix = cluster->weightingFactors();
-//                for(int i = 0; i != matrix.rows(); ++i) {
-//                    row = "";
-//                    for(int j = 0; j != matrix.columns(); ++j) {
-//                        row += QString::number(matrix(i, j)) + "   ";
-//                    }
-//                    qDebug() << row;
-//                }
-//                qDebug() << "";
-//            }
         }
 
         ++iterationNumber;

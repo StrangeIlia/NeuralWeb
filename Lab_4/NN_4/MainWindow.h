@@ -17,7 +17,7 @@
 #include "SwitchButton.h"
 #include "BipolarConverter.h"
 #include "neural_networks/DebugNeuralNetwork.h"
-#include "neural_networks/NeuralNetworkTrainer.h"
+#include "neural_networks/SimpleNeuralNetworkTrainer.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }

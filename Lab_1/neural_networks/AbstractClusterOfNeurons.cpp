@@ -278,7 +278,6 @@ void AbstractClusterOfNeurons::summation() {
             shift += cluster->neuronsCount();
         }
     }
-
 }
 
 

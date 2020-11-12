@@ -89,13 +89,13 @@ void MainWindow::clearTableData(bool /*ignored*/) {
 
 void MainWindow::training(bool /*ignored*/) {
     deleteUnusedImages(ui->imageGroup->currentIndex());
-    NeuralNetworkTrainer trainer(nueralNetwork, true);
+    SimpleNeuralNetworkTrainer trainer(nueralNetwork, true);
     SignalConverterPtr converter(new BipolarConverter);
 
     outputCluster->initWeight();
 
     for(int i = 0; i != ui->imageGroup->count(); ++i) {
-        NeuralNetworkTrainer::Signal binaryOutputSignal;
+        SimpleNeuralNetworkTrainer::Signal binaryOutputSignal;
 
         Matrix out(ui->imageGroup->count(), 1);
         for(int k = 0; k != out.rows(); ++k)
@@ -106,7 +106,7 @@ void MainWindow::training(bool /*ignored*/) {
 
         binaryOutputSignal[outputCluster] = matrix;
 
-        NeuralNetworkTrainer::Signal binaryInputSignal;
+        SimpleNeuralNetworkTrainer::Signal binaryInputSignal;
         QVector<MatrixPtr> images = this->images(i);
         if(images.empty()) {
             QString message = tr("Ошибка: группа \"");
@@ -120,7 +120,7 @@ void MainWindow::training(bool /*ignored*/) {
             converter->convertToSignal(binaryMatrix);
             binaryInputSignal[inputCluster] = binaryMatrix;
 
-            trainer.addTrainingSet(new NeuralNetworkTrainer::TrainingSet{
+            trainer.addTrainingSet(new SimpleNeuralNetworkTrainer::TrainingSet{
                                              binaryInputSignal,
                                              binaryOutputSignal,
                                          });
@@ -188,7 +188,7 @@ void MainWindow::printfInfo(bool /*ignored*/) {
     int rowsCount = ui->table->rowCount();
     int columnsCount = ui->table->columnCount();
 
-    auto functor = [&out, rowsCount, columnsCount] (AbstractClusterOfNeurons *cluster){
+    auto functor = [&out, rowsCount, columnsCount] (SimpleClusterOfNeurons *cluster){
         int precision = out.realNumberPrecision();
         auto notation = out.realNumberNotation();
         out.setRealNumberPrecision(5);

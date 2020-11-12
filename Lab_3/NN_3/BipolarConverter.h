@@ -1,13 +1,13 @@
-#ifndef BINARYCONVERTER_H
-#define BINARYCONVERTER_H
+#ifndef BIPOLARCONVERTER_H
+#define BIPOLARCONVERTER_H
 
 #include "neural_networks/AbstractSignalConverter.h"
 
-class BinaryConverter : public AbstractSignalConverter
+class BipolarConverter : public AbstractSignalConverter
 {
     BaseValueType _center;
 public:
-    BinaryConverter(BaseValueType center = 0);
+    BipolarConverter(BaseValueType center = 0);
 
     BaseValueType center() const;
     void setCenter(BaseValueType value);
@@ -16,4 +16,4 @@ public:
     void convertToData(Matrix& matrix) override;
 };
 
-#endif // BINARYCONVERTER_H
+#endif // BIPOLARCONVERTER_H

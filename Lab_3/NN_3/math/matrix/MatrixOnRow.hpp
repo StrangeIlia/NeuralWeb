@@ -11,7 +11,7 @@ class MatrixOnRow
 public:
     typedef     _BaseType       BaseType;
     typedef     _IndexType      IndexType;
-private:
+protected:
     int _rows, _columns;
     std::vector<BaseType> _matrix;
 public:

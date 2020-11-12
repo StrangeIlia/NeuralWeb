@@ -4,12 +4,11 @@
 #include <limits>
 
 #include <QHash>
-#include <QDebug>
 #include <QString>
 
 #include "SimpleNeuralNetwork.h"
 
-class NeuralNetworkTrainer
+class SimpleNeuralNetworkTrainer
 {
 public:
     struct DataPair {
@@ -28,8 +27,8 @@ protected:
     SimpleNeuralNetwork    *_networkLearn;
     bool                    _memoryControl;
 public:
-    NeuralNetworkTrainer(SimpleNeuralNetwork *network, bool memoryControl = false);
-    ~NeuralNetworkTrainer();
+    SimpleNeuralNetworkTrainer(SimpleNeuralNetwork *network, bool memoryControl = false);
+    ~SimpleNeuralNetworkTrainer();
 
     void addTrainingSet(TrainingSet *set);
     void removeTrainingSet(TrainingSet *set);
@@ -45,7 +44,6 @@ public:
     void removeSet();
     void removeInvalidSet();
     virtual int training(
-            BaseValueType learningFactor = 1,
             BaseValueType eps = std::numeric_limits<BaseValueType>::epsilon(),
             int maxIteration = -1);
 };
