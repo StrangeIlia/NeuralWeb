@@ -1,9 +1,5 @@
 #include "Signal.h"
 
-Signal::Signal() {
-
-}
-
 Signal::Signal(Signal &&othen) : Matrix(std::move(othen)){
 
 }
@@ -21,8 +17,30 @@ Signal& Signal::operator = (Signal &&othen) {
     return *this;
 }
 
-Signal& Signal::operator = (const Signal &&othen) {
+Signal& Signal::operator = (const Signal &othen) {
     Matrix::operator=(othen);
+    return *this;
+}
+
+Signal& Signal::operator +=(const Signal &othen) {
+    if(threadCount() != othen.threadCount())
+        throw std::invalid_argument("");
+    if(size() != othen.size())
+        throw std::invalid_argument("");
+    for(int i = 0; i != size(); ++i)
+        for(int j = 0; j != threadCount(); ++j)
+            setSignal(signal(i, j) + othen.signal(i, j), i, j);
+    return *this;
+}
+
+Signal& Signal::operator -=(const Signal &othen) {
+    if(threadCount() != othen.threadCount())
+        throw std::invalid_argument("");
+    if(size() != othen.size())
+        throw std::invalid_argument("");
+    for(int i = 0; i != size(); ++i)
+        for(int j = 0; j != threadCount(); ++j)
+            setSignal(signal(i, j) - othen.signal(i, j), i, j);
     return *this;
 }
 
@@ -54,6 +72,22 @@ void Signal::setThreadCount(int count, BaseValueType filler) {
         Matrix::setColumns(count);
         std::fill(getBaseRow().begin(), getBaseRow().end(), filler);
     }
+}
+
+void Signal::removeSignals(int first, int last) {
+    removeRows(first, last);
+}
+
+void Signal::insertSignals(int pos, int size) {
+    insertRows(pos, size);
+}
+
+void Signal::removeThreads(int first, int last) {
+    removeColumns(first, last);
+}
+
+void Signal::insertThreads(int pos, int size) {
+    insertColumns(pos, size);
 }
 
 Signal Signal::merge(QList<Signal> listSignals) {

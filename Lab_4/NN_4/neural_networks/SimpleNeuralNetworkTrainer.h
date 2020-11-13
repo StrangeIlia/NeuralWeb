@@ -16,11 +16,11 @@ public:
         Matrix       signal;
     };
 
-    typedef QHash<Cluster, Matrix>  Signal;
+    typedef QHash<Cluster, Signal>  Values;
 
     struct TrainingSet {
-        Signal input;
-        Signal output;
+        Values input;
+        Values output;
     };
 protected:
     QList<TrainingSet*>     _learningSet;

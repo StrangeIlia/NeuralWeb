@@ -6,17 +6,15 @@
 #include <QTextStream>
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QRandomGenerator>
 #include <QStandardItemModel>
 
 #include <cmath>
 #include <limits>
 
 #include "Console.h"
-#include "Bipolar.h"
-#include "Adaline.h"
+#include "Perceptron.h"
 #include "SwitchButton.h"
-#include "BipolarConverter.h"
-#include "neural_networks/DebugNeuralNetwork.h"
 #include "neural_networks/SimpleNeuralNetworkTrainer.h"
 
 QT_BEGIN_NAMESPACE
@@ -26,7 +24,6 @@ QT_END_NAMESPACE
 typedef QSharedPointer<Matrix>                  MatrixPtr;
 typedef QSharedPointer<QVariantHash>            QVariantHashPtr;
 typedef QSharedPointer<QAbstractItemModel>      QAbstractItemModelPtr;
-typedef QSharedPointer<AbstractSignalConverter> SignalConverterPtr;
 
 Q_DECLARE_METATYPE(MatrixPtr);
 Q_DECLARE_METATYPE(QVariantHashPtr);
@@ -56,22 +53,34 @@ private slots:
     void clearTableData(bool ignored = false);
     void training(bool ignored = false);
     void recognize(bool ignored = false);
-    void centring(bool ignored = false);
     void printfInfo(bool ignored = false);
 
 private:
     Ui::MainWindow *ui;
 
-    /// Это входные кластеры
-    Bipolar *inputCluster;
+    SimpleClusterOfNeurons *sCluster;
+    SimpleClusterOfNeurons *aCluster;
+    SimpleClusterOfNeurons *rCluster;
 
-    /// Эти кластеры считают
-    Adaline *outputCluster;
+    Perceptron *perceptron;
+    AbstractActivation *binary;
 
-    /// Это нейронная сеть
-    DebugNeuralNetwork *nueralNetwork;
+    SimpleNeuralNetwork *nueralNetwork;
 
-    void __centring();
+    /// -------------------------------
+
+    void initShifts();
+    QList<QList<Signal>> calcALayer();
+    void initRandomWeight(RelatationWeights &weights);
+
+    bool initWeights();
+
+
+    static Signal convertToSignal(MatrixPtr matrix);
+    static double diff(const Signal &first, const Signal &second);
+    static double diffInProcent(const Signal &first, const Signal &second);
+
+    /// ------------------------------
 
     void sendMessage(QString html);
     /// Ищет наиболее близкую группу к данному изображению
@@ -102,8 +111,6 @@ private:
     void deleteUnusedImages(int imageGroup);
 
     QVector<MatrixPtr> images(int groupIndex);
-
-    void calcError(int groupNumber, double &standardDev, double &maximumDev);
 
     void closeEvent(QCloseEvent* event) override;
 

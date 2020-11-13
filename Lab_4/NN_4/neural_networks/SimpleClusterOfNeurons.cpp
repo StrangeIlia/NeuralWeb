@@ -154,28 +154,28 @@ void SimpleClusterOfNeurons::summation() {
     }
 
     int shift = 0;
-    for(int cn = 0; cn != __inputs__.count(); ++cn) {
-        auto cluster = __inputs__[cn];
+    for(auto cluster : __inputs__) {
         if(__outputSignal__.threadCount() != cluster->threadsCount())
             throw std::exception();
 
         const auto &inputSignal = cluster->__outputSignal__;
 
         for(int i = 0; i != __outputSignal__.size(); ++i)  {
-            for(int k = 0; k != __inputs__.size(); ++k) {
+            for(int k = 0; k != inputSignal.size(); ++k) {
                 auto weight = __weights__.weight(i, k + shift);
                 for(int j = 0; j != __outputSignal__.threadCount(); ++j) {
                     auto value = __outputSignal__.signal(i, j);
-                    value += weight * inputSignal.signal(i, j);
+                    value += weight * inputSignal.signal(k, j);
                     __outputSignal__.setSignal(value, i, j);
                 }
             }
         }
+        shift += inputSignal.size();
     }
 }
 
 void SimpleClusterOfNeurons::activation() {
-    if(__activationFunction__ == nullptr)
+    if(__activationFunction__ != nullptr)
         __activationFunction__->activate(__outputSignal__);
 }
 

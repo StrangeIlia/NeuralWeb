@@ -16,31 +16,34 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    Console.cpp \
+    neural_networks/Signal.cpp \
     neural_networks/AbstractActivation.cpp \
     neural_networks/RelatationWeights.cpp \
-    neural_networks/Signal.cpp \
     neural_networks/SimpleClusterOfNeurons.cpp \
     neural_networks/SimpleNeuralNetwork.cpp \
-    neural_networks/DebugNeuralNetwork.cpp \
+    neural_networks/SimpleNeuralNetworkTrainer.cpp \
+    Binary.cpp \
+    Console.cpp \
+    Perceptron.cpp \
     SwitchButton.cpp \
     main.cpp \
-    MainWindow.cpp \
-    neural_networks/SimpleNeuralNetworkTrainer.cpp
+    MainWindow.cpp
+
 
 HEADERS += \
-    Console.h \
     math/matrix/MatrixOnRow.hpp \
-    neural_networks/AbstractActivation.h \
-    neural_networks/DebugNeuralNetwork.h \
     neural_networks/Definitions.h \
-    neural_networks/RelatationWeights.h \
     neural_networks/Signal.h \
+    neural_networks/RelatationWeights.h \
+    neural_networks/AbstractActivation.h \
     neural_networks/SimpleClusterOfNeurons.h \
     neural_networks/SimpleNeuralNetwork.h \
+    neural_networks/SimpleNeuralNetworkTrainer.h \
+    Binary.h \
+    Console.h \
+    Perceptron.h \
     MainWindow.h \
-    SwitchButton.h \
-    neural_networks/SimpleNeuralNetworkTrainer.h
+    SwitchButton.h
 
 FORMS += \
     Console.ui \

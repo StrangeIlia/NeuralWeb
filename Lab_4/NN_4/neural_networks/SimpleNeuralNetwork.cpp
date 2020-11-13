@@ -108,7 +108,7 @@ void SimpleNeuralNetwork::updateClusterSequence() {
     QSet<Cluster> nextLayer, predLayer = _inputsClusters;
     while(predLayer.size()) {
         for(auto inputCluster : predLayer) {
-            for(auto outputCluster : inputCluster->inputClusters()) {
+            for(auto outputCluster : inputCluster->outputClusters()) {
                 if(_hiddenClusters.contains(outputCluster)) {
                     if(!traversedNeurons.contains(outputCluster)) {
                         nextLayer.insert(outputCluster);
@@ -149,7 +149,7 @@ void SimpleNeuralNetwork::updateNetwork() {
 void SimpleNeuralNetwork::training(QHash<Cluster, Signal> errors) {
     if(clusterSequence.empty()) updateClusterSequence();
     {
-        auto reqOutputs = QSet<Cluster>(clusterSequence.begin(), clusterSequence.end());
+        auto reqOutputs = QSet<Cluster>(_outputClusters.begin(), _outputClusters.end());
         auto listOutpus = errors.keys();
         auto outputs = QSet<Cluster>(listOutpus.begin(), listOutpus.end());
         if(reqOutputs != outputs)

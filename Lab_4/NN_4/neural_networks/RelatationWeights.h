@@ -8,20 +8,20 @@ class RelatationWeights
 public:
     RelatationWeights();
 
-    inline int inputsCount() const;
-    inline void setInputsCount(int size);
-    inline void insertInputs(int pos, int count);
+    int inputsCount() const;
+    void setInputsCount(int size);
+    void insertInputs(int pos, int count);
     /// [first, last]
-    inline void removeInputs(int first, int last);
+    void removeInputs(int first, int last);
 
-    inline int neuronsCount() const;
-    inline void setNeuronsCount(int count);
-    inline void insertNeurons(int pos, int count);
+    int neuronsCount() const;
+    void setNeuronsCount(int count);
+    void insertNeurons(int pos, int count);
     /// [first, last]
-    inline void removeNeurons(int first, int last);
+    void removeNeurons(int first, int last);
 
-    inline const Matrix& weightingShift() const;
-    inline const Matrix& weightingFactors() const;
+    const Matrix& weightingShift() const;
+    const Matrix& weightingFactors() const;
 
     BaseValueType shift(int neuronNumber) const;
     void setShift(BaseValueType value, int neuronNumber);

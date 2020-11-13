@@ -37,19 +37,19 @@ public:
     const Signal &outputSignal() const;
 
     /// Число нейронов в кластере
-    inline int neuronsCount() const;
+    int neuronsCount() const;
 
     /// Число одновременно обрабатываемых входных сигналов
-    inline int threadsCount() const;
+    int threadsCount() const;
 
     /// Возвращает число входных сигналов
-    inline int inputSignalCount() const;
+    int inputSignalCount() const;
 
     /// Вставляет count нейронов на index место
-    inline void insertNeurons(int index, int count);
+    void insertNeurons(int index, int count);
 
     /// Удаляет нейроны [first; last]
-    inline void removeNeurons(int first, int last);
+    void removeNeurons(int first, int last);
 
     /// Устанавливает число нейронов в кластере
     void setNueronsCount(int count);
@@ -79,10 +79,10 @@ public:
     virtual void summation();
 
     /// Преобразует суммарный входной сигнал в выходной
-    inline void activation();
+    void activation();
 
     /// Функция корректировки весовых коэффициентов
-    inline QHash<Cluster, Signal> correction(Signal error);
+    QHash<Cluster, Signal> correction(Signal error);
 
     void _neuronsAppended_(SimpleClusterOfNeurons *updated, int index, int count);
 
@@ -92,7 +92,7 @@ public:
     ClusterList __outputs__;
     Signal __outputSignal__;
     RelatationWeights __weights__;
-    AbstractActivationPtr __activationFunction__;
+    AbstractActivationPtr __activationFunction__ = nullptr;
 };
 
 #endif // CLUSTEROFNEURONS_H

@@ -63,7 +63,7 @@ void SimpleNeuralNetworkTrainer::removeInvalidSet() {
     for(auto value : set) addTrainingSet(value);
 }
 
-int SimpleNeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValueType eps, int maxIteration) {
+int SimpleNeuralNetworkTrainer::training(BaseValueType eps, int maxIteration) {
     int iterationNumber = 0;
     while(iterationNumber != maxIteration) {
         QList<TrainingSet*> mistakes;
@@ -71,17 +71,17 @@ int SimpleNeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValue
         for(auto trainingSet : _learningSet) {
             const auto &input = trainingSet->input;
             for(auto iter = input.begin(); iter != input.end(); ++iter) {
-                iter.key()->setOutputSignal(iter.value());
+                iter.key()->outputSignal() = iter.value();
             }
             _networkLearn->updateNetwork();
             const auto &output = trainingSet->output;
             bool hasChanged = false;
             for(auto iter = output.begin(); iter != output.end(); ++iter) {
                 const auto &calculated = iter.key()->outputSignal();
-                const auto &requiredMatrix = iter.value();
-                for(int i = 0; i != calculated.rows(); ++i) {
-                    for(int j = 0; j != calculated.columns(); ++j){
-                        if(std::abs(requiredMatrix(i, j) - calculated(i, j)) > eps) {
+                const auto &requiredSignal = iter.value();
+                for(int i = 0; i != calculated.threadCount(); ++i) {
+                    for(int j = 0; j != calculated.size(); ++j){
+                        if(std::abs(requiredSignal.signal(j, i) - calculated.signal(j, i)) > eps) {
                             mistakes.append(trainingSet);
                             hasChanged = true;
                             break;
@@ -97,15 +97,18 @@ int SimpleNeuralNetworkTrainer::training(BaseValueType learningFactor, BaseValue
         for(auto trainingSet : mistakes) {
             const auto &input = trainingSet->input;
             for(auto iter = input.begin(); iter != input.end(); ++iter) {
-                iter.key()->setOutputSignal(iter.value());
+                iter.key()->outputSignal() = iter.value();
             }
             _networkLearn->updateNetwork();
+
+            QHash<Cluster, Signal> errors;
             const auto &output = trainingSet->output;
             for(auto iter = output.begin(); iter != output.end(); ++iter) {
-                const auto &requiredMatrix = iter.value();
-                iter.key()->setOutputSignal(requiredMatrix);
+                auto error = iter.value();
+                error -= iter.key()->outputSignal();
+                errors.insert(iter.key(), std::move(error));
             }
-            _networkLearn->training(learningFactor);
+            _networkLearn->training(errors);
         }
 
         ++iterationNumber;

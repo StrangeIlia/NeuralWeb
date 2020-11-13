@@ -15,15 +15,15 @@ MainWindow::MainWindow(QWidget *parent)
     initImageSet();
     initTable();
     initImageGroups();
-
-    ui->centring->setVisible(false);
-    ui->centring->setEnabled(false);
 }
 
 MainWindow::~MainWindow() {
     delete ui;
-    delete outputCluster;
-    delete inputCluster;
+    delete rCluster;
+    delete aCluster;
+    delete sCluster;
+    delete binary;
+    delete perceptron;
     delete nueralNetwork;
 }
 
@@ -40,7 +40,6 @@ void MainWindow::changeImageSet(int groupIndex) {
 void MainWindow::addImage(bool /*ignored*/) {
     addImage(ui->imageGroup->currentIndex());
     ui->image->setCurrentIndex(ui->image->count() - 1);
-    ui->learningFactor->setMaximum(1.0 / ui->imageGroup->count());
 }
 
 void MainWindow::removeImage(bool /*ignored*/) {
@@ -52,7 +51,6 @@ void MainWindow::removeImage(bool /*ignored*/) {
         return;
     }
     removeImage(ui->imageGroup->currentIndex(), ui->image->currentIndex());
-    ui->learningFactor->setMaximum(1.0 / ui->imageGroup->count());
 }
 
 void MainWindow::saveImage(bool /*value*/) {
@@ -89,24 +87,24 @@ void MainWindow::clearTableData(bool /*ignored*/) {
 
 void MainWindow::training(bool /*ignored*/) {
     deleteUnusedImages(ui->imageGroup->currentIndex());
-    SimpleNeuralNetworkTrainer trainer(nueralNetwork, true);
-    SignalConverterPtr converter(new BipolarConverter);
 
-    outputCluster->initWeight();
+    if(!initWeights()) {
+        sendMessage(tr("Не удалось сгенерировать весовые коэффициенты"));
+        return;
+    }
+
+    SimpleNeuralNetworkTrainer trainer(nueralNetwork, true);
 
     for(int i = 0; i != ui->imageGroup->count(); ++i) {
-        SimpleNeuralNetworkTrainer::Signal binaryOutputSignal;
+        SimpleNeuralNetworkTrainer::Values outputSignal;
 
-        Matrix out(ui->imageGroup->count(), 1);
-        for(int k = 0; k != out.rows(); ++k)
-            out(k, 0) = k == i ? 1 : 0;
+        Signal out(ui->imageGroup->count());
+        for(int k = 0; k != out.size(); ++k)
+            out.setSignal(k == i ? 1 : 0, k);
 
-        Matrix matrix = out;
-        converter->convertToSignal(matrix);
+        outputSignal[rCluster] = out;
 
-        binaryOutputSignal[outputCluster] = matrix;
-
-        SimpleNeuralNetworkTrainer::Signal binaryInputSignal;
+        SimpleNeuralNetworkTrainer::Values inputSignal;
         QVector<MatrixPtr> images = this->images(i);
         if(images.empty()) {
             QString message = tr("Ошибка: группа \"");
@@ -116,39 +114,33 @@ void MainWindow::training(bool /*ignored*/) {
             return;
         }
         for(MatrixPtr matrix : images) {
-            Matrix binaryMatrix = *matrix;
-            converter->convertToSignal(binaryMatrix);
-            binaryInputSignal[inputCluster] = binaryMatrix;
+            Signal in = convertToSignal(matrix);
+
+            inputSignal[sCluster] = in;
 
             trainer.addTrainingSet(new SimpleNeuralNetworkTrainer::TrainingSet{
-                                             binaryInputSignal,
-                                             binaryOutputSignal,
+                                             inputSignal,
+                                             outputSignal,
                                          });
         }
     }
 
-    double learningFactor = ui->learningFactor->value();
-
-    int iterCount = trainer.training(learningFactor, 0.005);
+    int iterCount = trainer.training(1e-7, 1000);
     sendMessage(tr("Нейронные сети обучены (") + QString::number(iterCount) + ")");
 }
 
 void MainWindow::recognize(bool /*ignored*/) {
     MatrixPtr matrixPtr = table();
-    SignalConverterPtr converter(new BipolarConverter);
 
-    Matrix matrix = *matrixPtr;
-    converter->convertToSignal(matrix);
-    inputCluster->setOutputSignal(matrix);
+    sCluster->outputSignal() = convertToSignal(matrixPtr);
 
     nueralNetwork->updateNetwork();
 
-    matrix = outputCluster->outputSignal();
-    converter->convertToData(matrix);
+    auto outputSignal = rCluster->outputSignal();
 
     QList<int> groups;
-    for(int i = 0; i != matrix.rows(); ++i){
-        int s = round(matrix(i, 0));
+    for(int i = 0; i != outputSignal.size(); ++i){
+        int s = round(outputSignal.signal(i));
         if (s != 0) groups.append(i);
     }
 
@@ -176,11 +168,6 @@ void MainWindow::recognize(bool /*ignored*/) {
     sendMessage(message);
 }
 
-void MainWindow::centring(bool /*ignored*/) {
-    __centring();
-    sendMessage(tr("Веса откорректированы"));
-}
-
 void MainWindow::printfInfo(bool /*ignored*/) {
     QString str;
     QTextStream out(&str);
@@ -196,8 +183,8 @@ void MainWindow::printfInfo(bool /*ignored*/) {
         for(int k = 0; k != cluster->neuronsCount(); ++k) {
             out << tr("Весовые коэффициенты для ");
             out << QString::number(k + 1) << tr(" нейрона");
-            const auto &shift = cluster->weightingShift();
-            const auto &weight = cluster->weightingFactors();
+            const auto &shift = cluster->weights().weightingShift();
+            const auto &weight = cluster->weights().weightingFactors();
             out << "<table border=\"1\" cellpadding=\"3\" cellspacing=\"3\">";
             for(int i = 0; i != rowsCount; ++i) {
                 out << "<tr>";
@@ -213,117 +200,134 @@ void MainWindow::printfInfo(bool /*ignored*/) {
     };
 
 
-    out << tr("Информация по адалину:<br>");
-    functor(outputCluster);
+    out << tr("Информация по A-слою:<br>");
+    functor(aCluster);
 
-    int precision = out.realNumberPrecision();
-    auto notation = out.realNumberNotation();
-    out.setRealNumberPrecision(5);
-    out.setRealNumberNotation(QTextStream::FixedNotation);
-    double allStanDev, allMaxDev = -1;
-    for(int i = 0; i != ui->imageGroup->count(); ++i) {
-        double stanDev, maxDev;
-        calcError(i, stanDev, maxDev);
-        allStanDev = std::pow(stanDev, 2);
-        allMaxDev = std::max(allMaxDev, maxDev);
-        out << tr("Информация по группе \"") << ui->imageGroup->itemData(i, Qt::DisplayRole).toString() << tr("\": <br>");
-        out << tr("&nbsp;&nbsp;&nbsp;&nbsp;Среднеквадратичное отклонение: ") << stanDev << "<br>";
-        out << tr("&nbsp;&nbsp;&nbsp;&nbsp;Максимальное отклонение: ") << maxDev << "<br><br>";
-    }
-    allStanDev = std::sqrt(allStanDev);
-    out << tr("Общее среднеквадратичное отклонение: ") << allStanDev << "<br>";
-    out << tr("Максимальное отклонение: ") << allMaxDev << "<br><br>";
+    out << tr("Информация по R-слою:<br>");
+    functor(rCluster);
 
-    out.setRealNumberPrecision(precision);
-    out.setRealNumberNotation(notation);
 
     sendMessage(str);
 }
 
-void MainWindow::__centring() {
-    nueralNetwork->setSaveSummSignal(true);
+void MainWindow::initShifts() {
+    int imageCount = 0;
+    Matrix shift = aCluster->weights().weightingShift();
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        for(auto matrixptr : this->images(i)) {
+            sCluster->outputSignal() = convertToSignal(matrixptr);
+            aCluster->summation();
+            for(int j = 0; j != shift.rows(); ++j) {
+                auto value = shift.cell(j, 0);
+                value -= aCluster->outputSignal().signal(j);
+                shift.setCell(j, 0, value);
+            }
+            ++imageCount;
+        }
+    }
+    for(int j = 0; j != shift.rows(); ++j) {
+        auto value = shift.cell(j, 0);
+        value /= imageCount;
+        shift.setCell(j, 0, value);
+    }
+    aCluster->__weights__.__weightingShift__ = shift;
+}
 
-    QList<int> countImageInGroups;
-    SignalConverterPtr converter(new BipolarConverter);
-    Matrix positive(outputCluster->neuronsCount(), 1);
-    Matrix negative(outputCluster->neuronsCount(), 1);
+QList<QList<Signal>> MainWindow::calcALayer() {
+    QList<QList<Signal>> allSignals;
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        QList<Signal> groupSignals;
+        for(auto matrixptr : this->images(i)) {
+            sCluster->outputSignal() = convertToSignal(matrixptr);
+            aCluster->summation();
+            aCluster->activation();
+            groupSignals.append(aCluster->outputSignal());
+        }
+        allSignals.append(groupSignals);
+    }
+    return allSignals;
+}
 
-    for(int k = 0; k != ui->imageGroup->count(); ++k) {
-        auto images = this->images(k);
-        countImageInGroups.append(images.size());
-        for(auto matrixptr : images) {
-            Matrix binaryMatrix = *matrixptr;
-            converter->convertToSignal(binaryMatrix);
-            inputCluster->setOutputSignal(binaryMatrix);
+void MainWindow::initRandomWeight(RelatationWeights &weight) {
+    QRandomGenerator *random = QRandomGenerator::system();
+    double range = ui->uppedBound->value() - ui->lowerBound->value();
+    for(int i = 0; i != weight.neuronsCount(); ++i) {
+        for(int j = 0; j != weight.inputsCount(); ++j) {
+            auto value = random->generateDouble();
+            value *= range;
+            value += ui->lowerBound->value();
+            weight.setWeight(value, i, j);
+        }
+    }
+}
 
-            nueralNetwork->updateNetwork();
+bool MainWindow::initWeights() {
+    initRandomWeight(rCluster->weights());
 
-            Matrix summBinarySignal = nueralNetwork->summSignal().value(outputCluster);
-            for(int i = 0; i != summBinarySignal.rows(); ++i) {
-                if(i == k) {
-                    positive(i, 0) += summBinarySignal(i, 0);
-                } else {
-                    negative(i, 0) += summBinarySignal(i, 0);
+    for(int iter = 0; iter != 100; ++iter) {
+        initRandomWeight(aCluster->weights());
+        initShifts();
+
+        auto allSignals = calcALayer();
+//        QList<QPair<int, int>> differences;
+//        for(int i = 0; i != allSignals.size(); ++i) {
+//            QPair<int, int> pair;
+//            pair.first = std::numeric_limits<double>::max();
+//            pair.second = -std::numeric_limits<double>::max();
+//            differences.append(pair);
+//        }
+
+        bool okey = true;
+        for(int selGrInd = 0; selGrInd != allSignals.size(); ++selGrInd) {
+            auto selectedGroup = allSignals[selGrInd];
+            for(int chGrInd = selGrInd + 1; chGrInd != allSignals.size(); ++chGrInd) {
+                auto checkedGroup = allSignals[chGrInd];
+                for(int selImInd = 0; selImInd != selectedGroup.size(); ++selImInd) {
+                    auto selectedImage = selectedGroup[selImInd];
+                    for(int chImInd = 0; chImInd != selectedGroup.size(); ++chImInd) {
+                        auto checkedImage = checkedGroup[chImInd];
+                        auto difference = diff(selectedImage, checkedImage);
+                        if(difference / checkedImage.size() < 0.3) {
+                            okey = false;
+                            break;
+                        }
+                    }
+                    if(!okey) break;
                 }
+                if(!okey) break;
             }
+            if(!okey) break;
         }
+
+        if(okey) return true;
+
     }
+    return false;
+}
 
-    Matrix shift(outputCluster->neuronsCount(), 1);
-    Matrix weight = outputCluster->weightingFactors();
-    Matrix weightShift = outputCluster->weightingShift();
-    /// Попытка золотой середины
-    for(int i = 0; i != countImageInGroups.size(); ++i) {
-        int positiveCount = countImageInGroups[i];
-        int negativeCount = 0;
-        for(int j = 0; j != countImageInGroups.size(); ++j) {
-            if(j != i) negativeCount += countImageInGroups[j];
-        }
-        positive(i, 0) /= positiveCount;
-        negative(i, 0) /= negativeCount;
-        shift(i, 0) = (positive(i, 0) + negative(i, 0)) / 2;
+Signal MainWindow::convertToSignal(MatrixPtr matrix) {
+    Signal signal(matrix->rows() * matrix->columns());
+    double summSignal = 0;
+    for(int i = 0; i != matrix->rows(); ++i)
+        for(int j = 0; j != matrix->columns(); ++j)
+            summSignal += matrix->cell(i, j);
+
+    for(int i = 0; i != matrix->rows(); ++i) {
+        for(int j = 0; j != matrix->columns(); ++j)
+            signal.setSignal(matrix->cell(i, j) / summSignal, i * matrix->columns() + j);
     }
-    /// Добавим пограничную зону
-    for(int k = 0; k != ui->imageGroup->count(); ++k) {
-        double minShift = std::numeric_limits<double>::max();
-        double maxShift = -std::numeric_limits<double>::max();
+    return signal;
+}
 
-        auto images = this->images(k);
-        for(auto matrixptr : images) {
-            Matrix binaryMatrix = *matrixptr;
-            converter->convertToSignal(binaryMatrix);
-            inputCluster->setOutputSignal(binaryMatrix);
+double MainWindow::diff(const Signal &first, const Signal &second) {
+    double d = 0;
+    for(int i = 0; i != first.size(); ++i)
+        d += std::abs(first.signal(i) - second.signal(i));
+    return d;
+}
 
-            nueralNetwork->updateNetwork();
-
-            Matrix summBinarySignal = nueralNetwork->summSignal().value(outputCluster);
-            for(int i = 0; i != summBinarySignal.rows(); ++i) {
-                if(i == k) {
-                    minShift = std::min(minShift, summBinarySignal(i, 0));
-                } else {
-                    maxShift = std::max(maxShift, summBinarySignal(i, 0));
-                }
-            }
-        }
-
-        /// Отсутствие доминирования
-        if(maxShift > minShift) {
-            shift(k, 0) = 0;
-        }
-        else {
-            if(shift(k, 0) < maxShift || minShift < shift(k, 0)) {
-                shift(k, 0) = (maxShift + minShift) / 2;
-            }
-        }
-    }
-
-
-    for(int i = 0; i != weightShift.rows(); ++i) {
-        weightShift(i, 0) -= shift(i, 0);
-    }
-    outputCluster->setWeightingShift(weightShift);
-
-    nueralNetwork->setSaveSummSignal(false);
+double MainWindow::diffInProcent(const Signal &first, const Signal &second) {
+    return diff(first, second) / first.size();
 }
 
 void MainWindow::sendMessage(QString html) {
@@ -346,28 +350,21 @@ void MainWindow::sendMessage(QString html) {
 }
 
 int MainWindow::closestGroup(MatrixPtr matrix) {
-    nueralNetwork->setSaveSummSignal(true);
-    SignalConverterPtr binaryConverter(new BipolarConverter);
-
-    Matrix binaryMatrix = *matrix;
-    binaryConverter->convertToSignal(binaryMatrix);
-    inputCluster->setOutputSignal(binaryMatrix);
+    sCluster->outputSignal() = convertToSignal(matrix);
     nueralNetwork->updateNetwork();
-    auto hash = nueralNetwork->summSignal();
-    auto signal = hash[outputCluster];
+    rCluster->summation();
 
-    int indexMaxValue = -1;
-    double maxValue = -std::numeric_limits<double>::max();
-    for(int i = 0; i != signal.rows(); ++i) {
-        if(signal.cell(i, 0) > maxValue) {
-            maxValue = signal.cell(i, 0);
-            indexMaxValue = i;
+    int bestIndex = -1;
+    double bestValue = -std::numeric_limits<double>::max();
+    auto outputSignal = rCluster->outputSignal();
+    for(int i = 0; i != outputSignal.size(); ++i) {
+        if(outputSignal.signal(i) > bestValue) {
+            bestValue = outputSignal.signal(i);
+            bestIndex = i;
         }
     }
 
-    nueralNetwork->setSaveSummSignal(false);
-
-    return indexMaxValue;
+    return bestIndex;
 }
 
 template<class T>
@@ -512,7 +509,7 @@ void MainWindow::createNewGroup() {
         name = tmpName;
     }
     ui->imageGroup->insertItem(ui->imageGroup->count(), name);
-    outputCluster->insertNeurons(outputCluster->neuronsCount(), 1);
+    rCluster->insertNeurons(rCluster->neuronsCount(), 1);
 }
 
 void MainWindow::removeGroup(int group) {
@@ -529,7 +526,7 @@ void MainWindow::removeGroup(int group) {
 
     auto model = ui->imageGroup->model();
     model->removeRow(ui->imageGroup->currentIndex());
-    outputCluster->removeNeurons(group, group);
+    rCluster->removeNeurons(group, group);
 }
 
 void MainWindow::initTable() {
@@ -551,24 +548,28 @@ void MainWindow::initImageSet() {
 }
 
 void MainWindow::initNeuralWebs() {
-    outputCluster = new Adaline(1);
-    outputCluster->removeNeurons(0, 0);
+    sCluster = new SimpleClusterOfNeurons(ui->table->rowCount() * ui->table->columnCount());
+    aCluster = new SimpleClusterOfNeurons(12);
+    rCluster = new SimpleClusterOfNeurons();
 
-    int inputCount = ui->table->rowCount() * ui->table->columnCount();
-    inputCluster = new Bipolar(inputCount);
+    binary = new Binary();
+    perceptron = new Perceptron();
+    aCluster->__activationFunction__ = binary;
+    rCluster->__activationFunction__ = perceptron;
 
-    inputCluster->addOutput(outputCluster);
+    sCluster->addOutput(aCluster);
+    aCluster->addOutput(rCluster);
 
-    nueralNetwork = new DebugNeuralNetwork();
+    nueralNetwork = new SimpleNeuralNetwork();
 
-    nueralNetwork->addCluster(outputCluster);
-    nueralNetwork->addCluster(inputCluster);
+    nueralNetwork->addCluster(rCluster);
+    nueralNetwork->addCluster(aCluster);
+    nueralNetwork->addCluster(sCluster);
 
     nueralNetwork->updateClusterSequence();
 
     connect(ui->info, &QPushButton::clicked, this, &MainWindow::printfInfo);
     connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
-    connect(ui->centring, &QPushButton::clicked, this, &MainWindow::centring);
     connect(ui->recognizeImage, &QPushButton::clicked, this, &MainWindow::recognize);
 }
 
@@ -617,34 +618,6 @@ QVector<MatrixPtr> MainWindow::images(int groupIndex) {
         }
     }
     return result;
-}
-
-void MainWindow::calcError(int groupNumber, double &standardDev, double &maximumDev) {
-    SignalConverterPtr converter(new BipolarConverter);
-    Matrix reqMatrix(ui->imageGroup->count(), 1);
-    for(int i = 0; i != reqMatrix.rows(); ++i) {
-        reqMatrix(i, 0) = i == groupNumber ? 1 : 0;
-    }
-    converter->convertToSignal(reqMatrix);
-
-    for(auto matrixptr : this->images(groupNumber)) {
-        Matrix matrix = *matrixptr;
-        converter->convertToSignal(matrix);
-        inputCluster->setOutputSignal(matrix);
-        nueralNetwork->updateNetwork();
-        matrix = outputCluster->outputSignal();
-
-        standardDev = 0;
-        maximumDev = -1;
-        for(int i = 0; i != matrix.rows(); ++i) {
-            for(int j = 0; j != matrix.columns(); ++j) {
-                double dv = std::abs(reqMatrix.cell(i, 0) - matrix.cell(i, j));
-                standardDev += std::pow(dv, 2);
-                maximumDev = std::max(maximumDev, dv);
-            }
-        }
-    }
-    standardDev = std::sqrt(standardDev);
 }
 
 void MainWindow::closeEvent(QCloseEvent* /*ignored*/) {
