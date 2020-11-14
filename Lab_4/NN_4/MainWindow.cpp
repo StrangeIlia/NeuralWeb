@@ -129,6 +129,44 @@ void MainWindow::training(bool /*ignored*/) {
     sendMessage(tr("Нейронные сети обучены (") + QString::number(iterCount) + ")");
 }
 
+void MainWindow::balancing(bool /*ignored*/) {
+    __balancing();
+    sendMessage(tr("Сигналы сдвига для R слоя отбалансированы"));
+}
+
+void MainWindow::__balancing() {
+    Matrix range(ui->imageGroup->count(), 2);
+    for(int i = 0; i != range.rows(); ++i) {
+        range.setCell(i, 0, -std::numeric_limits<double>::max());
+        range.setCell(i, 1,  std::numeric_limits<double>::max());
+    }
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        QVector<MatrixPtr> images = this->images(i);
+        for(MatrixPtr matrix : images) {
+            sCluster->outputSignal() = convertToSignal(matrix);
+            nueralNetwork->updateNetwork();
+            rCluster->summation();
+            const auto &signal = rCluster->outputSignal();
+            for(int j = 0; j != signal.size(); ++j) {
+                if(i == j) {
+                    if(range.cell(j, 0) > signal.signal(j)) {
+                        range.setCell(j, 0, signal.signal(j));
+                    }
+                } else {
+                    if(range.cell(j, 1) < signal.signal(j)) {
+                        range.setCell(j, 0, signal.signal(j));
+                    }
+                }
+            }
+        }
+    }
+
+    auto &weight = rCluster->weights();
+    for(int i = 0; i != rCluster->neuronsCount(); ++i) {
+        weight.setShift((range.cell(i, 0) + range.cell(i, 1)) / 2, i);
+    }
+}
+
 void MainWindow::recognize(bool /*ignored*/) {
     MatrixPtr matrixPtr = table();
 
@@ -169,45 +207,60 @@ void MainWindow::recognize(bool /*ignored*/) {
 }
 
 void MainWindow::printfInfo(bool /*ignored*/) {
-    QString str;
-    QTextStream out(&str);
+//    QString str;
+//    QTextStream out(&str);
 
-    int rowsCount = ui->table->rowCount();
-    int columnsCount = ui->table->columnCount();
+//    int rowsCount = ui->table->rowCount();
+//    int columnsCount = ui->table->columnCount();
 
-    auto functor = [&out, rowsCount, columnsCount] (SimpleClusterOfNeurons *cluster){
-        int precision = out.realNumberPrecision();
-        auto notation = out.realNumberNotation();
-        out.setRealNumberPrecision(5);
-        out.setRealNumberNotation(QTextStream::FixedNotation);
-        for(int k = 0; k != cluster->neuronsCount(); ++k) {
-            out << tr("Весовые коэффициенты для ");
-            out << QString::number(k + 1) << tr(" нейрона");
-            const auto &shift = cluster->weights().weightingShift();
-            const auto &weight = cluster->weights().weightingFactors();
-            out << "<table border=\"1\" cellpadding=\"3\" cellspacing=\"3\">";
-            for(int i = 0; i != rowsCount; ++i) {
-                out << "<tr>";
-                for(int j = 0; j != columnsCount; ++j) {
-                    out << "<td align=\"center\">" << weight(k, i * columnsCount + j) << "</td>";
-                }
-                out << "</tr>";
-            }
-            out << "<tr><td width=\"100%\" align=\"center\" colspan=\"" << columnsCount << "\">" << shift(k, 0) << "</td></tr></table><br><br>";
-        }
-        out.setRealNumberPrecision(precision);
-        out.setRealNumberNotation(notation);
-    };
-
-
-    out << tr("Информация по A-слою:<br>");
-    functor(aCluster);
-
-    out << tr("Информация по R-слою:<br>");
-    functor(rCluster);
+//    auto functor = [&out, rowsCount, columnsCount] (SimpleClusterOfNeurons *cluster){
+//        int precision = out.realNumberPrecision();
+//        auto notation = out.realNumberNotation();
+//        out.setRealNumberPrecision(5);
+//        out.setRealNumberNotation(QTextStream::FixedNotation);
+//        for(int k = 0; k != cluster->neuronsCount(); ++k) {
+//            out << tr("Весовые коэффициенты для ");
+//            out << QString::number(k + 1) << tr(" нейрона");
+//            const auto &shift = cluster->weights().weightingShift();
+//            const auto &weight = cluster->weights().weightingFactors();
+//            out << "<table border=\"1\" cellpadding=\"3\" cellspacing=\"3\">";
+//            for(int i = 0; i != rowsCount; ++i) {
+//                out << "<tr>";
+//                for(int j = 0; j != columnsCount; ++j) {
+//                    out << "<td align=\"center\">" << weight(k, i * columnsCount + j) << "</td>";
+//                }
+//                out << "</tr>";
+//            }
+//            out << "<tr><td width=\"100%\" align=\"center\" colspan=\"" << columnsCount << "\">" << shift(k, 0) << "</td></tr></table><br><br>";
+//        }
+//        out.setRealNumberPrecision(precision);
+//        out.setRealNumberNotation(notation);
+//    };
 
 
-    sendMessage(str);
+//    out << tr("Информация по A-слою:<br>");
+//    functor(aCluster);
+
+//    out << tr("Информация по R-слою:<br>");
+//    functor(rCluster);
+
+
+//    sendMessage(str);
+}
+
+void MainWindow::changeAttributeCount(int count) {
+    aCluster->setNueronsCount(count);
+}
+
+void MainWindow::changeRange(double /*value*/) {
+    double lowerBound = ui->lowerBound->value();
+    double uppedBound = ui->uppedBound->value();
+    ui->lowerBound->setMaximum(uppedBound - 0.01);
+    ui->uppedBound->setMinimum(lowerBound + 0.01);
+}
+
+void MainWindow::changeSmallTeta(double value) {
+    perceptron->__ny__ = value;
 }
 
 void MainWindow::initShifts() {
@@ -269,13 +322,6 @@ bool MainWindow::initWeights() {
         initShifts();
 
         auto allSignals = calcALayer();
-//        QList<QPair<int, int>> differences;
-//        for(int i = 0; i != allSignals.size(); ++i) {
-//            QPair<int, int> pair;
-//            pair.first = std::numeric_limits<double>::max();
-//            pair.second = -std::numeric_limits<double>::max();
-//            differences.append(pair);
-//        }
 
         bool okey = true;
         for(int selGrInd = 0; selGrInd != allSignals.size(); ++selGrInd) {
@@ -510,6 +556,7 @@ void MainWindow::createNewGroup() {
     }
     ui->imageGroup->insertItem(ui->imageGroup->count(), name);
     rCluster->insertNeurons(rCluster->neuronsCount(), 1);
+    ui->attributesCount->setMinimum(ui->imageGroup->count());
 }
 
 void MainWindow::removeGroup(int group) {
@@ -527,6 +574,7 @@ void MainWindow::removeGroup(int group) {
     auto model = ui->imageGroup->model();
     model->removeRow(ui->imageGroup->currentIndex());
     rCluster->removeNeurons(group, group);
+    ui->attributesCount->setMinimum(ui->imageGroup->count());
 }
 
 void MainWindow::initTable() {
@@ -548,8 +596,23 @@ void MainWindow::initImageSet() {
 }
 
 void MainWindow::initNeuralWebs() {
+    connect(ui->info, &QPushButton::clicked, this, &MainWindow::printfInfo);
+    connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
+    connect(ui->balancing, &QPushButton::clicked, this, &MainWindow::balancing);
+    connect(ui->recognizeImage, &QPushButton::clicked, this, &MainWindow::recognize);
+
+    connect(ui->lowerBound, SIGNAL(valueChanged(double)), this, SLOT(changeRange(double)));
+    connect(ui->uppedBound, SIGNAL(valueChanged(double)), this, SLOT(changeRange(double)));
+    connect(ui->smallTeta, SIGNAL(valueChanged(double)), this, SLOT(changeSmallTeta(double)));
+
+    ui->lowerBound->setMinimum(-1.0);
+    ui->uppedBound->setMaximum( 1.0);
+
+    ui->lowerBound->setValue(-0.1);
+    ui->uppedBound->setValue( 0.1);
+
     sCluster = new SimpleClusterOfNeurons(ui->table->rowCount() * ui->table->columnCount());
-    aCluster = new SimpleClusterOfNeurons(12);
+    aCluster = new SimpleClusterOfNeurons(ui->attributesCount->value());
     rCluster = new SimpleClusterOfNeurons();
 
     binary = new Binary();
@@ -567,10 +630,6 @@ void MainWindow::initNeuralWebs() {
     nueralNetwork->addCluster(sCluster);
 
     nueralNetwork->updateClusterSequence();
-
-    connect(ui->info, &QPushButton::clicked, this, &MainWindow::printfInfo);
-    connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
-    connect(ui->recognizeImage, &QPushButton::clicked, this, &MainWindow::recognize);
 }
 
 void MainWindow::initImageGroups() {

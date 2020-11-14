@@ -6,12 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>904</width>
-    <height>600</height>
+    <width>944</width>
+    <height>665</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
-   <string>Бойчук Илья. Нейронные сети. Лаб 3.</string>
+   <string>Бойчук Илья. Нейронные сети. Лаб 4.</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -238,9 +244,92 @@
         <widget class="QWidget" name="widget_14" native="true">
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
+           <widget class="QWidget" name="widget_15" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_10">
+             <item>
+              <widget class="QLabel" name="label_7">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Коэффициент η:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDoubleSpinBox" name="smallTeta">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimum">
+                <double>0.100000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_6">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Число атрибутов</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="attributesCount">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+               <property name="minimum">
+                <number>2</number>
+               </property>
+               <property name="value">
+                <number>12</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
            <widget class="QLabel" name="label_3">
             <property name="text">
-             <string>Весовые коэффициенты</string>
+             <string>Границы генерации весовых коэффициентов</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -259,6 +348,9 @@
              </item>
              <item>
               <widget class="QDoubleSpinBox" name="lowerBound">
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
                <property name="minimum">
                 <double>-1.000000000000000</double>
                </property>
@@ -289,7 +381,7 @@
              <item>
               <widget class="QLabel" name="label_2">
                <property name="text">
-                <string>Верняя граница</string>
+                <string>Верхняя граница</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -303,6 +395,9 @@
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                </property>
                <property name="minimum">
                 <double>-1.000000000000000</double>
@@ -370,7 +465,7 @@
            <widget class="QWidget" name="widget_11" native="true">
             <layout class="QHBoxLayout" name="horizontalLayout_8">
              <item>
-              <widget class="QPushButton" name="centring">
+              <widget class="QPushButton" name="balancing">
                <property name="text">
                 <string>Сбалансировать сигналы сдвига</string>
                </property>
@@ -380,6 +475,9 @@
               <widget class="QPushButton" name="info">
                <property name="text">
                 <string>Вывести служебную информацию</string>
+               </property>
+               <property name="flat">
+                <bool>false</bool>
                </property>
               </widget>
              </item>

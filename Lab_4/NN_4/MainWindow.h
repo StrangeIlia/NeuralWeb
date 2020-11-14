@@ -52,8 +52,13 @@ private slots:
     /// Чтобы можно было использовать без указания значения ignored
     void clearTableData(bool ignored = false);
     void training(bool ignored = false);
+    void balancing(bool ignored = false);
     void recognize(bool ignored = false);
     void printfInfo(bool ignored = false);
+
+    void changeAttributeCount(int count);
+    void changeRange(double ignored = 0.0);
+    void changeSmallTeta(double value = 0.0);
 
 private:
     Ui::MainWindow *ui;
@@ -66,6 +71,9 @@ private:
     AbstractActivation *binary;
 
     SimpleNeuralNetwork *nueralNetwork;
+
+
+    void __balancing();
 
     /// -------------------------------
 
