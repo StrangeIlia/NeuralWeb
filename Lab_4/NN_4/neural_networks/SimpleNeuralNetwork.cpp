@@ -162,8 +162,15 @@ void SimpleNeuralNetwork::training(QHash<Cluster, Signal> errors) {
         auto cluster = *reverseIter;
         auto signal = errors.take(cluster);
         auto hash = cluster->correction(signal);
-        for(auto iter = hash.begin(); iter != hash.end(); ++iter)
-            errors.insert(iter.key(), std::move(iter.value()));
+        for(auto iter = hash.begin(); iter != hash.end(); ++iter) {
+            if(errors.contains(iter.key())) {
+                auto &signal = errors[iter.key()];
+                signal += iter.value();
+            } else {
+                errors.insert(iter.key(), std::move(iter.value()));
+            }
+        }
+
         ++reverseIter;
     }
 }
