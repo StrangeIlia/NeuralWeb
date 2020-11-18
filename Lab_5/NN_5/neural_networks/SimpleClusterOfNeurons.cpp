@@ -91,6 +91,13 @@ void SimpleClusterOfNeurons::setNueronsCount(int count) {
          removeNeurons(count, neuronsCount() - 1);
 }
 
+AbstractActivationPtr SimpleClusterOfNeurons::activationFunction() const {
+    return __activationFunction__;
+}
+
+void SimpleClusterOfNeurons::setActivationFunction(AbstractActivationPtr funct) {
+    __activationFunction__ = funct;
+}
 
 bool SimpleClusterOfNeurons::addInput(SimpleClusterOfNeurons *cluster) {
     return connect(cluster, this);
@@ -128,7 +135,7 @@ bool SimpleClusterOfNeurons::disconnect(SimpleClusterOfNeurons *in, SimpleCluste
 
     in->__outputs__.removeOne(out);
     out->_neuronsDeleted_(in, 0, in->neuronsCount() - 1);
-    out->__inputs__.removeOne(out);
+    out->__inputs__.removeOne(in);
     return true;
 }
 

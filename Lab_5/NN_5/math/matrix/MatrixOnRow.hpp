@@ -85,6 +85,7 @@ MatrixOnRow<BaseType, IndexType>& MatrixOnRow<BaseType, IndexType>::operator = (
     _columns = othen._columns;
     _matrix = std::move(othen._matrix);
     othen._rows = othen._columns = 0;
+    return *this;
 }
 
 template<class BaseType, class IndexType>

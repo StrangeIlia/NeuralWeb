@@ -54,6 +54,9 @@ public:
     /// Устанавливает число нейронов в кластере
     void setNueronsCount(int count);
 
+    AbstractActivationPtr activationFunction() const;
+    void setActivationFunction(AbstractActivationPtr funct);
+
     /// Добавить входной кластер
     bool addInput(SimpleClusterOfNeurons *cluster);
 

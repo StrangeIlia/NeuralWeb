@@ -79,15 +79,15 @@ int SimpleNeuralNetworkTrainer::training(BaseValueType eps, int maxIteration) {
             for(auto iter = output.begin(); iter != output.end(); ++iter) {
                 const auto &calculated = iter.key()->outputSignal();
                 const auto &requiredSignal = iter.value();
-                for(int i = 0; i != calculated.threadCount(); ++i) {
-                    for(int j = 0; j != calculated.size(); ++j){
-                        if(std::abs(requiredSignal.signal(j, i) - calculated.signal(j, i)) > eps) {
+                for(int i = 0; i != calculated.size(); ++i){
+                    for(int th = 0; th != calculated.threadCount(); ++th) {
+                        if(std::abs(requiredSignal.signal(i, th) - calculated.signal(i, th)) > eps) {
                             mistakes.append(trainingSet);
                             hasChanged = true;
                             break;
                         }
+                        if(hasChanged) break;
                     }
-                    if(hasChanged) break;
                 }
             }
         }

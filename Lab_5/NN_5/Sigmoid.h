@@ -1,6 +1,7 @@
 #ifndef SIGMOID_H
 #define SIGMOID_H
 
+#include <cmath>
 #include "neural_networks/AbstractActivation.h"
 
 class Sigmoid : public AbstractActivation

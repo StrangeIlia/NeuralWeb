@@ -12,10 +12,12 @@
 #include <cmath>
 #include <limits>
 
-#include "Console.h"
+#include "Binary.h"
 #include "Sigmoid.h"
-#include "SwitchButton.h"
 #include "neural_networks/SimpleNeuralNetworkTrainer.h"
+
+#include "Console.h"
+#include "SwitchButton.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -35,6 +37,8 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(QWidget *parent = nullptr);
+    void test();
+
     ~MainWindow();
 
 signals:
@@ -52,42 +56,31 @@ private slots:
     /// Чтобы можно было использовать без указания значения ignored
     void clearTableData(bool ignored = false);
     void training(bool ignored = false);
-    void balancing(bool ignored = false);
+    void batchTraining(bool ignored = false);
     void recognize(bool ignored = false);
     void printfInfo(bool ignored = false);
 
-    void changeAttributeCount(int count);
+    void changeNeuronsCount(int index);
     void changeRange(double ignored = 0.0);
-    void changeSmallTeta(double value = 0.0);
+    void changeLearningFactor(double value = 1.0);
 
 private:
     Ui::MainWindow *ui;
 
-    SimpleClusterOfNeurons *sCluster;
-    SimpleClusterOfNeurons *aCluster;
-    SimpleClusterOfNeurons *rCluster;
+    Cluster inputCluster;
+    Cluster outputCluster;
+    ClusterList hiddenClusters;
 
-    Sigmoid *perceptron;
+    Sigmoid *sigmoid;
     AbstractActivation *binary;
 
-    SimpleNeuralNetwork *nueralNetwork;
-
-
-    void __balancing();
+    SimpleNeuralNetwork *neuralNetwork;
 
     /// -------------------------------
-
-    void initShifts();
-    QList<QList<Signal>> calcALayer();
+    void initWeights();
     void initRandomWeight(RelatationWeights &weights);
 
-    bool initWeights();
-
-
     static Signal convertToSignal(MatrixPtr matrix);
-    static double diff(const Signal &first, const Signal &second);
-    static double diffInProcent(const Signal &first, const Signal &second);
-
     /// ------------------------------
 
     void sendMessage(QString html);
@@ -108,6 +101,9 @@ private:
 
     void addImage(int group);
     void removeImage(int group, int image);
+
+    void addHiddenLayer(int neuronsCount);
+    void removeHiddenLayer(int index);
 
     void createNewGroup();
     void removeGroup(int group);

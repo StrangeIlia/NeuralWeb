@@ -129,8 +129,8 @@ void SimpleNeuralNetwork::updateClusterSequence() {
 
 void SimpleNeuralNetwork::updateClusterRoles() {
     QSet<Cluster> tmp = _hiddenClusters;
-    tmp.intersect(_inputsClusters);
-    tmp.intersect(_outputClusters);
+    tmp.unite(_inputsClusters);
+    tmp.unite(_outputClusters);
     clear();
     for(auto cluster : tmp)
         addCluster(cluster);
