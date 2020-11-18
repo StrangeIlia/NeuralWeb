@@ -13,7 +13,7 @@
 #include <limits>
 
 #include "Console.h"
-#include "Perceptron.h"
+#include "Sigmoid.h"
 #include "SwitchButton.h"
 #include "neural_networks/SimpleNeuralNetworkTrainer.h"
 
@@ -67,7 +67,7 @@ private:
     SimpleClusterOfNeurons *aCluster;
     SimpleClusterOfNeurons *rCluster;
 
-    Perceptron *perceptron;
+    Sigmoid *perceptron;
     AbstractActivation *binary;
 
     SimpleNeuralNetwork *nueralNetwork;

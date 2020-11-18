@@ -16,6 +16,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    Sigmoid.cpp \
     neural_networks/Signal.cpp \
     neural_networks/AbstractActivation.cpp \
     neural_networks/RelatationWeights.cpp \
@@ -24,13 +25,13 @@ SOURCES += \
     neural_networks/SimpleNeuralNetworkTrainer.cpp \
     Binary.cpp \
     Console.cpp \
-    Perceptron.cpp \
     SwitchButton.cpp \
     main.cpp \
     MainWindow.cpp
 
 
 HEADERS += \
+    Sigmoid.h \
     math/matrix/MatrixOnRow.hpp \
     neural_networks/Definitions.h \
     neural_networks/Signal.h \
@@ -41,7 +42,6 @@ HEADERS += \
     neural_networks/SimpleNeuralNetworkTrainer.h \
     Binary.h \
     Console.h \
-    Perceptron.h \
     MainWindow.h \
     SwitchButton.h
 

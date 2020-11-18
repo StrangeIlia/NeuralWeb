@@ -11,7 +11,10 @@ public:
     virtual ~AbstractActivation();
 
     virtual void activate(Signal &input);
-    virtual Signal correct(const Signal &input, RelatationWeights &weights, const Signal &error);
+    virtual Signal correct(const Signal &input,
+                           const Signal &output,
+                           RelatationWeights &weights,
+                           const Signal &error);
 };
 
 #endif // FUNCTIONACTIVATION_H

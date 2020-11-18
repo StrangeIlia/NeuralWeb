@@ -189,7 +189,7 @@ QHash<Cluster, Signal> SimpleClusterOfNeurons::correction(Signal error) {
         counts.push_back(cluster->neuronsCount());
         inputSignals.push_back(cluster->__outputSignal__);
     }
-    auto mergedSignals = __activationFunction__->correct(Signal::merge(inputSignals), __weights__, error);
+    auto mergedSignals = __activationFunction__->correct(Signal::merge(inputSignals), __outputSignal__, __weights__, error);
     if(mergedSignals.size() == 0)
         return QHash<Cluster, Signal>();
 

@@ -260,7 +260,7 @@ void MainWindow::changeRange(double /*value*/) {
 }
 
 void MainWindow::changeSmallTeta(double value) {
-    perceptron->__ny__ = value;
+    perceptron->__learningRate__ = value;
 }
 
 void MainWindow::initShifts() {
@@ -616,7 +616,7 @@ void MainWindow::initNeuralWebs() {
     rCluster = new SimpleClusterOfNeurons();
 
     binary = new Binary();
-    perceptron = new Perceptron();
+    perceptron = new Sigmoid();
     aCluster->__activationFunction__ = binary;
     rCluster->__activationFunction__ = perceptron;
 
