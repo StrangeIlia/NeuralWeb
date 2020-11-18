@@ -15,6 +15,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+# OpenMP для параллельных вычислениях на процессоре
+# Правда, для таких мелких расчетов создание и удаление нитей очень длительно
+QMAKE_LFLAGS += -fopenmp
+QMAKE_CXXFLAGS += -fopenmp
+
 SOURCES += \
     Sigmoid.cpp \
     neural_networks/Signal.cpp \
