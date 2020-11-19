@@ -202,20 +202,27 @@ void MainWindow::training(bool /*ignored*/) {
 
     QString buffer;
     QTextStream out(&buffer);
+    out.setRealNumberPrecision(5);
 
     int maxIterCount = ui->maxIterationCount->text().toInt();
+
+    QDateTime start = QDateTime::currentDateTime();
     int iterCount = trainer.training(ui->requiredEps->value(), maxIterCount);
+    QDateTime finish = QDateTime::currentDateTime();
+
+    double time = start.msecsTo(finish);
+
     if(iterCount == maxIterCount) {
         out << tr("Нейронную сеть не удалось обучить до заданной точности ");
         out << ui->requiredEps->value() << " ";
         out << tr("за заданное число итераций ");
         out << maxIterCount;
         out << tr("<br>Максимальное отклонение равно ");
-        out.setRealNumberPrecision(5);
         out << maxError();
     } else {
         out << tr("Нейронная сеть обучена до заданной точности за ");
-        out << QString::number(iterCount) << tr(" итераций");
+        out << QString::number(iterCount) << tr(" итераций (время обучения: ");
+        out << time / 1000 << tr(" секунд)");
     }
 
     sendMessage(buffer);
@@ -279,7 +286,12 @@ void MainWindow::batchTraining(bool /*ignored*/) {
     QTextStream out(&buffer);
 
     int maxIterCount = ui->maxIterationCount->text().toInt();
+
+    QDateTime start = QDateTime::currentDateTime();
     int iterCount = trainer.training(ui->requiredEps->value(), maxIterCount);
+    QDateTime finish = QDateTime::currentDateTime();
+
+    double time = start.msecsTo(finish);
     if(iterCount == maxIterCount) {
         out << tr("Нейронную сеть не удалось обучить до заданной точности ");
         out << ui->requiredEps->value() << " ";
@@ -290,7 +302,8 @@ void MainWindow::batchTraining(bool /*ignored*/) {
         out << maxError();
     } else {
         out << tr("Нейронная сеть обучена до заданной точности за ");
-        out << QString::number(iterCount) << tr(" итераций");
+        out << QString::number(iterCount) << tr(" итераций (время обучения: ");
+        out << time / 1000 << tr(" секунд)");
     }
 
     sendMessage(buffer);

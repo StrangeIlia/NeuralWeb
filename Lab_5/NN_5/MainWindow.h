@@ -3,6 +3,7 @@
 
 #include <QHash>
 #include <QVector>
+#include <QDateTime>
 #include <QTextStream>
 #include <QMainWindow>
 #include <QMessageBox>
