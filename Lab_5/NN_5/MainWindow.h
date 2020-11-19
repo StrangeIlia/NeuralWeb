@@ -9,6 +9,8 @@
 #include <QRandomGenerator>
 #include <QStandardItemModel>
 
+#include <QIntValidator>
+
 #include <cmath>
 #include <limits>
 
@@ -60,6 +62,10 @@ private slots:
     void recognize(bool ignored = false);
     void printfInfo(bool ignored = false);
 
+    void changeLayer(int index);
+    void addLayer(bool ignored = false);
+    void removeLayer(bool ignored = false);
+
     void changeNeuronsCount(int index);
     void changeRange(double ignored = 0.0);
     void changeLearningFactor(double value = 1.0);
@@ -107,6 +113,8 @@ private:
 
     void createNewGroup();
     void removeGroup(int group);
+
+    double maxError();
 
     void initTable();
     void initImageSet();

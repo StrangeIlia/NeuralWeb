@@ -9,12 +9,13 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
     initNeuralWebs();
 
     initImageSet();
     initTable();
     initImageGroups();
+
+
 
 //    test();
 }
@@ -165,8 +166,6 @@ void MainWindow::training(bool /*ignored*/) {
     initWeights();
     deleteUnusedImages(ui->imageGroup->currentIndex());
 
-   // sigmoid->__learningRate__ = 10;
-
     SimpleNeuralNetworkTrainer trainer(neuralNetwork, true);
 
     for(int i = 0; i != ui->imageGroup->count(); ++i) {
@@ -201,13 +200,25 @@ void MainWindow::training(bool /*ignored*/) {
         }
     }
 
-    int maxIterCount = 100000;
-    int iterCount = trainer.training(0.05, 100000);
+    QString buffer;
+    QTextStream out(&buffer);
+
+    int maxIterCount = ui->maxIterationCount->text().toInt();
+    int iterCount = trainer.training(ui->requiredEps->value(), maxIterCount);
     if(iterCount == maxIterCount) {
-        sendMessage(tr("Нейронную сеть не удалось обучить"));
+        out << tr("Нейронную сеть не удалось обучить до заданной точности ");
+        out << ui->requiredEps->value() << " ";
+        out << tr("за заданное число итераций ");
+        out << maxIterCount;
+        out << tr("<br>Максимальное отклонение равно ");
+        out.setRealNumberPrecision(5);
+        out << maxError();
     } else {
-        sendMessage(tr("Нейронную сеть обучены (") + QString::number(iterCount) + ")");
+        out << tr("Нейронная сеть обучена до заданной точности за ");
+        out << QString::number(iterCount) << tr(" итераций");
     }
+
+    sendMessage(buffer);
 }
 
 void MainWindow::batchTraining(bool /*ignored*/) {
@@ -264,13 +275,25 @@ void MainWindow::batchTraining(bool /*ignored*/) {
         }
     );
 
-    int maxIterCount = 100000;
-    int iterCount = trainer.training(0.05, maxIterCount);
+    QString buffer;
+    QTextStream out(&buffer);
+
+    int maxIterCount = ui->maxIterationCount->text().toInt();
+    int iterCount = trainer.training(ui->requiredEps->value(), maxIterCount);
     if(iterCount == maxIterCount) {
-        sendMessage(tr("Нейронную сеть не удалось обучить"));
+        out << tr("Нейронную сеть не удалось обучить до заданной точности ");
+        out << ui->requiredEps->value() << " ";
+        out << tr("за заданное число итераций ");
+        out << maxIterCount;
+        out << tr("<br>Максимальное отклонение равно ");
+        out.setRealNumberPrecision(5);
+        out << maxError();
     } else {
-        sendMessage(tr("Нейронную сеть обучены (") + QString::number(iterCount) + ")");
+        out << tr("Нейронная сеть обучена до заданной точности за ");
+        out << QString::number(iterCount) << tr(" итераций");
     }
+
+    sendMessage(buffer);
 }
 
 void MainWindow::recognize(bool /*ignored*/) {
@@ -313,7 +336,54 @@ void MainWindow::recognize(bool /*ignored*/) {
 }
 
 void MainWindow::printfInfo(bool /*ignored*/) {
+    QString buffer;
+    QTextStream out(&buffer);
 
+    out.setRealNumberPrecision(5);
+    out.setRealNumberNotation(QTextStream::RealNumberNotation::FixedNotation);
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        out << tr("Информация по ") << i + 1 << tr(" группе<br>");
+
+        auto images = this->images(i);
+        for(int k = 0; k != images.size(); ++k) {
+            auto image = images[k];
+            out << tr("&nbsp;&nbsp;&nbsp;&nbsp;Отклонения для ") << k + 1 << tr(" изображения [");
+            inputCluster->outputSignal() = convertToSignal(image);
+            neuralNetwork->updateNetwork();
+            auto &output = outputCluster->outputSignal();
+            for(int j = 0; j != output.size(); ++j) {
+                out << (i == j ? 1 - output.signal(j) : output.signal(j) - 0);
+                out << "; ";
+            }
+            out << "]<br>";
+        }
+    }
+    sendMessage(buffer);
+}
+
+
+void MainWindow::changeLayer(int index) {
+    ui->layerNumber->setText(QString::number(index + 1));
+}
+
+void MainWindow::addLayer(bool /*ignored*/) {
+    int neuronsCount = 0;
+    if(ui->layers->count() != 0) {
+        neuronsCount = ui->layers->itemData(ui->layers->count() - 1, Qt::DisplayRole).toInt();
+        neuronsCount /= 2;
+    } else {
+        neuronsCount = ui->table->rowCount() * ui->table->columnCount() / 2;
+    }
+
+    if(neuronsCount < ui->imageGroup->count()) {
+        neuronsCount = ui->imageGroup->count();
+    }
+
+    addHiddenLayer(neuronsCount);
+}
+
+void MainWindow::removeLayer(bool /*ignored*/) {
+    removeHiddenLayer(ui->layers->currentIndex());
 }
 
 void MainWindow::changeNeuronsCount(int index) {
@@ -542,21 +612,30 @@ void MainWindow::addHiddenLayer(int neuronsCount) {
     lastCluster->addOutput(newCluster);
     outputCluster->addInput(newCluster);
     lastCluster->removeOutput(outputCluster);
-    newCluster->setActivationFunction(lastCluster->activationFunction());
+    newCluster->setActivationFunction(sigmoid);
 
     hiddenClusters.append(newCluster);
     neuralNetwork->addCluster(newCluster);
-//    neuralNetwork->updateClusterRoles();
+    //neuralNetwork->updateClusterRoles();
 
     ui->layers->addItem(QString::number(neuronsCount));
+    ui->layers->setCurrentIndex(ui->layers->count() - 1);
 }
 
 void MainWindow::removeHiddenLayer(int index) {
     auto cluster = hiddenClusters[index];
 
     hiddenClusters.removeAt(index);
+
+    auto inputs =  cluster->inputClusters();
+    auto outputs = cluster->outputClusters();
+    cluster->clearLinks();
+    for(auto input : inputs)
+        for(auto output : outputs)
+            input->addOutput(output);
+
     neuralNetwork->removeCluster(cluster);
-//    neuralNetwork->updateClusterRoles();
+    neuralNetwork->updateClusterRoles();
 
     ui->layers->removeItem(index);
 
@@ -595,6 +674,22 @@ void MainWindow::removeGroup(int group) {
     outputCluster->removeNeurons(group, group);
 }
 
+double MainWindow::maxError() {
+    double maxError = -1;
+    for(int i = 0; i != ui->imageGroup->count(); ++i) {
+        for(auto image : this->images(i)) {
+            inputCluster->outputSignal() = convertToSignal(image);
+            neuralNetwork->updateNetwork();
+            auto &output = outputCluster->outputSignal();
+            for(int j = 0; j != output.size(); ++j) {
+                double error = i == j ? 1 - output.signal(j) : output.signal(j) - 0;
+                if (error > maxError) maxError = error;
+            }
+        }
+    }
+    return maxError;
+}
+
 void MainWindow::initTable() {
     ui->table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
     ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
@@ -614,6 +709,16 @@ void MainWindow::initImageSet() {
 }
 
 void MainWindow::initNeuralWebs() {
+    auto validator = new QIntValidator(this);
+    validator->setBottom(1);
+
+    connect(ui->addHiddenLayer, &QPushButton::clicked, this, &MainWindow::addLayer);
+    connect(ui->deleteHiddenLayer, &QPushButton::clicked, this, &MainWindow::removeLayer);
+    connect(ui->layers, SIGNAL(currentIndexChanged(int)), this, SLOT(changeLayer(int)));
+
+    ui->maxIterationCount->setValidator(validator);
+    ui->maxIterationCount->setText(QString::number(100000));
+
     connect(ui->info, &QPushButton::clicked, this, &MainWindow::printfInfo);
     connect(ui->learning, &QPushButton::clicked, this, &MainWindow::training);
     connect(ui->batchTraining, &QPushButton::clicked, this, &MainWindow::batchTraining);
@@ -622,12 +727,6 @@ void MainWindow::initNeuralWebs() {
     connect(ui->lowerBound, SIGNAL(valueChanged(double)), this, SLOT(changeRange(double)));
     connect(ui->uppedBound, SIGNAL(valueChanged(double)), this, SLOT(changeRange(double)));
     connect(ui->smallTeta, SIGNAL(valueChanged(double)), this, SLOT(changeLearningFactor(double)));
-
-    ui->lowerBound->setMinimum(-1.0);
-    ui->uppedBound->setMaximum( 1.0);
-
-    ui->lowerBound->setValue(-0.1);
-    ui->uppedBound->setValue( 0.1);
 
     inputCluster = new SimpleClusterOfNeurons(ui->table->rowCount() * ui->table->columnCount());
     outputCluster = new SimpleClusterOfNeurons();
@@ -646,6 +745,7 @@ void MainWindow::initNeuralWebs() {
     addHiddenLayer(12);
     addHiddenLayer(6);
 
+    ui->layers->setCurrentIndex(0);
     neuralNetwork->updateClusterSequence();
 }
 

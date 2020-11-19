@@ -43,7 +43,7 @@ Signal Sigmoid::correct(const Signal &input, const Signal &output, RelatationWei
 
     for(int i = 0; i < weights.neuronsCount(); ++i) {
         BaseValueType correction = 0;
-        for(int j = 0; j <= weights.inputsCount(); ++j) {
+        for(int j = 0; j < weights.inputsCount(); ++j) {
             correction = 0;
             auto weight = weights.weight(i, j);
             for(int th = 0; th != calcError.threadCount(); ++th) {

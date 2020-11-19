@@ -16,6 +16,7 @@ protected:
     std::vector<BaseType> _matrix;
 public:
     MatrixOnRow();
+    ~MatrixOnRow();
     MatrixOnRow(MatrixOnRow&& othen);
     MatrixOnRow(const MatrixOnRow& othen);
     /// Задает матрицу заданного размера, раполняет базовым значением типа
@@ -57,6 +58,13 @@ public:
 template<class BaseType, class IndexType>
 MatrixOnRow<BaseType, IndexType>::MatrixOnRow() : _rows(0), _columns(0) {
 
+}
+
+template<class BaseType, class IndexType>
+MatrixOnRow<BaseType, IndexType>::~MatrixOnRow() {
+    _rows = 0;
+    _columns = 0;
+    _matrix.clear();
 }
 
 template<class BaseType, class IndexType>
