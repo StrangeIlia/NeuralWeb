@@ -24,6 +24,7 @@ Thumbs.db
 *.docx
 *.o
 *.a
+*.png
 **.stash
 moc_*.*
 ui_*.h
@@ -32,6 +33,7 @@ users*~*
 Makefile
 *.rar
 *.zip
+*.Z
 object_script.*
 [Bb]in
 [Dd]ebug*/
